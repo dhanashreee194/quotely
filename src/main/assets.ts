@@ -2,7 +2,11 @@ import { randomUUID } from 'crypto'
 import { copyFileSync, existsSync, mkdirSync, readFileSync } from 'fs'
 import { extname, join } from 'path'
 import { app, BrowserWindow, dialog } from 'electron'
+import { eq } from 'drizzle-orm'
+import logoAsset from '../../resources/logo.png?asset'
 import type { AssetKind } from '../shared/types'
+import { getDatabase } from './db'
+import { companyProfile } from './db/schema'
 
 const MIME_BY_EXT: Record<string, string> = {
   '.png': 'image/png',
@@ -22,6 +26,45 @@ export function ensureAssetsDir(): string {
   mkdirSync(join(root, 'logos'), { recursive: true })
   mkdirSync(join(root, 'signatures'), { recursive: true })
   return root
+}
+
+const DEFAULT_COMPANY_LOGO_RELATIVE = 'logos/quotely-default.png'
+
+/**
+ * On first launch (or whenever company_profile has no logoPath), copy the
+ * bundled Quotely logo into userData and set it as the company logo.
+ * Users can still replace it in Settings.
+ */
+export function ensureDefaultCompanyLogo(): void {
+  ensureAssetsDir()
+  const db = getDatabase()
+  const existing = db.select().from(companyProfile).where(eq(companyProfile.id, 1)).get()
+  if (existing?.logoPath) {
+    return
+  }
+
+  const destination = resolveAssetPath(DEFAULT_COMPANY_LOGO_RELATIVE)
+  if (!existsSync(destination)) {
+    copyFileSync(logoAsset, destination)
+  }
+
+  const updatedAt = new Date().toISOString()
+  if (existing) {
+    db.update(companyProfile)
+      .set({ logoPath: DEFAULT_COMPANY_LOGO_RELATIVE, updatedAt })
+      .where(eq(companyProfile.id, 1))
+      .run()
+    return
+  }
+
+  db.insert(companyProfile)
+    .values({
+      id: 1,
+      name: 'Quotely',
+      logoPath: DEFAULT_COMPANY_LOGO_RELATIVE,
+      updatedAt
+    })
+    .run()
 }
 
 function resolveAssetPath(relativePath: string): string {

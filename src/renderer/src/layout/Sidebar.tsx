@@ -13,6 +13,7 @@ import PeopleAltOutlinedIcon from '@mui/icons-material/PeopleAltOutlined'
 import Inventory2OutlinedIcon from '@mui/icons-material/Inventory2Outlined'
 import DescriptionOutlinedIcon from '@mui/icons-material/DescriptionOutlined'
 import SettingsOutlinedIcon from '@mui/icons-material/SettingsOutlined'
+import logoUrl from '../../../../resources/logo.png'
 
 const navItems = [
   { label: 'Dashboard', path: '/', icon: <DashboardOutlinedIcon /> },
@@ -40,7 +41,20 @@ export default function Sidebar({ width }: SidebarProps): React.JSX.Element {
         }
       }}
     >
-      <Toolbar sx={{ px: 2 }}>
+      <Toolbar sx={{ px: 2, gap: 1.25, minHeight: 64 }}>
+        <Box
+          component="img"
+          src={logoUrl}
+          alt=""
+          sx={{
+            width: 36,
+            height: 36,
+            borderRadius: '50%',
+            objectFit: 'cover',
+            flexShrink: 0,
+            display: 'block'
+          }}
+        />
         <Typography variant="h6" color="primary" noWrap>
           Quotely
         </Typography>

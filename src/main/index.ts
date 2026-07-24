@@ -1,8 +1,8 @@
-import { app, shell, BrowserWindow } from 'electron'
+import { app, shell, BrowserWindow, nativeImage } from 'electron'
 import { join } from 'path'
 import { electronApp, optimizer, is } from '@electron-toolkit/utils'
-import icon from '../../resources/icon.png?asset'
-import { ensureAssetsDir } from './assets'
+import logo from '../../resources/logo.png?asset'
+import { ensureAssetsDir, ensureDefaultCompanyLogo } from './assets'
 import { closeDatabase, initDatabase } from './db'
 import { registerIpcHandlers } from './ipc'
 
@@ -12,7 +12,7 @@ function createWindow(): void {
     height: 800,
     show: false,
     autoHideMenuBar: true,
-    ...(process.platform === 'linux' ? { icon } : {}),
+    icon: logo,
     webPreferences: {
       preload: join(__dirname, '../preload/index.js'),
       sandbox: false,
@@ -39,8 +39,14 @@ function createWindow(): void {
 app.whenReady().then(() => {
   electronApp.setAppUserModelId('com.quotely.app')
 
+  const dockIcon = nativeImage.createFromPath(logo)
+  if (process.platform === 'darwin' && app.dock && !dockIcon.isEmpty()) {
+    app.dock.setIcon(dockIcon)
+  }
+
   ensureAssetsDir()
   initDatabase()
+  ensureDefaultCompanyLogo()
   registerIpcHandlers()
 
   app.on('browser-window-created', (_, window) => {
