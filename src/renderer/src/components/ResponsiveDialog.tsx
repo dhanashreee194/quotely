@@ -4,7 +4,10 @@ import { useTheme } from '@mui/material/styles'
 
 type ResponsiveDialogProps = DialogProps
 
-/** Dialog that goes fullScreen below the `sm` breakpoint for usable forms on narrow windows. */
+/**
+ * Dialog that goes fullScreen below the `md` breakpoint (~900px), matching the
+ * hamburger-nav layout. (Window minWidth is 700, so `sm`/600px would never fire.)
+ */
 export default function ResponsiveDialog({
   fullWidth = true,
   maxWidth = 'sm',
@@ -12,7 +15,7 @@ export default function ResponsiveDialog({
   ...props
 }: ResponsiveDialogProps): React.JSX.Element {
   const theme = useTheme()
-  const compact = useMediaQuery(theme.breakpoints.down('sm'))
+  const compact = useMediaQuery(theme.breakpoints.down('md'))
   return (
     <Dialog fullWidth={fullWidth} maxWidth={maxWidth} fullScreen={fullScreen ?? compact} {...props} />
   )
