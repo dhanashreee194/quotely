@@ -73,7 +73,7 @@ export default function DynamicForm({
   })
 
   return (
-    <Box component="form" onSubmit={handleSubmit}>
+    <Box component="form" noValidate onSubmit={handleSubmit}>
       <Stack spacing={2}>
         <Typography variant="subtitle2" color="text.secondary">
           Dynamic form preview — schema is generated from field definitions (no hard-coded inputs).

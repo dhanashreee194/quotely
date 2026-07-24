@@ -9,7 +9,7 @@ type Journal = {
 
 function getJournalPath(): string {
   const candidates = [
-    join(__dirname, 'migrations/meta/_journal.json'),
+    join(__dirname, 'db/migrations/meta/_journal.json'),
     join(app.getAppPath(), 'src/main/db/migrations/meta/_journal.json'),
     join(app.getAppPath(), 'out/main/db/migrations/meta/_journal.json')
   ]

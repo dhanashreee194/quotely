@@ -1,24 +1,37 @@
-appId: com.quotely.app
+appId: com.hyperlychee.quotely
 productName: Quotely
 directories:
   buildResources: build
 files:
   - '!**/.vscode/*'
   - '!src/*'
+  - '!e2e/*'
+  - '!e2e-results/*'
+  - '!playwright-report/*'
   - '!electron.vite.config.{js,ts,mjs,cjs}'
+  - '!playwright.config.ts'
+  - '!vitest.config.ts'
   - '!{.eslintcache,eslint.config.mjs,.prettierignore,.prettierrc.yaml,dev-app-update.yml,CHANGELOG.md,README.md}'
   - '!{.env,.env.*,.npmrc,pnpm-lock.yaml}'
   - '!{tsconfig.json,tsconfig.node.json,tsconfig.web.json}'
 asarUnpack:
   - resources/**
+  # Native module must load from unpacked filesystem in the installed app.
+  - node_modules/better-sqlite3/**
 win:
+  target:
+    - target: nsis
+      arch:
+        - x64
   executableName: Quotely
   icon: icon.png
 nsis:
-  artifactName: ${name}-${version}-setup.${ext}
+  artifactName: QuotelySetup-${version}.${ext}
   shortcutName: ${productName}
   uninstallDisplayName: ${productName}
+  allowToChangeInstallationDirectory: true
   createDesktopShortcut: always
+  createStartMenuShortcut: true
 mac:
   icon: icon.png
   entitlementsInherit: build/entitlements.mac.plist
@@ -40,7 +53,10 @@ linux:
   category: Utility
 appImage:
   artifactName: ${name}-${version}.${ext}
-npmRebuild: false
+# Rebuild native deps (better-sqlite3) against the Electron ABI for packaged builds.
+npmRebuild: true
+# Windows code signing: set CSC_LINK / CSC_KEY_PASSWORD in CI (see .github/workflows/build-win.yml).
+# Prefer `npm run build:win` on Windows or the Windows GitHub Actions runner when signing.
 publish:
   provider: generic
   url: https://example.com/auto-updates

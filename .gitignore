@@ -6,3 +6,6 @@ out
 *.log*
 quotely.dev.db
 quotely.dev.db-*
+e2e-results
+playwright-report
+test-results
