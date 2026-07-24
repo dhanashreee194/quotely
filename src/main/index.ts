@@ -2,6 +2,7 @@ import { app, shell, BrowserWindow } from 'electron'
 import { join } from 'path'
 import { electronApp, optimizer, is } from '@electron-toolkit/utils'
 import icon from '../../resources/icon.png?asset'
+import { ensureAssetsDir } from './assets'
 import { closeDatabase, initDatabase } from './db'
 import { registerIpcHandlers } from './ipc'
 
@@ -38,6 +39,7 @@ function createWindow(): void {
 app.whenReady().then(() => {
   electronApp.setAppUserModelId('com.quotely.app')
 
+  ensureAssetsDir()
   initDatabase()
   registerIpcHandlers()
 
