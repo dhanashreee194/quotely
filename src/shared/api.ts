@@ -1,3 +1,4 @@
+import type { NumberingConfig, QuotationStatus } from './quotation'
 import type {
   AssetKind,
   ChargeRule,
@@ -12,6 +13,9 @@ import type {
   ItemColumnDefinitionInput,
   Product,
   ProductInput,
+  QuotationBundle,
+  QuotationInput,
+  QuotationListItem,
   QuotationTemplate,
   QuotationTemplateBundle,
   QuotationTemplateInput,
@@ -107,6 +111,24 @@ export type QuotationTemplatesApi = {
   }
 }
 
+export type QuotationsApi = {
+  list: (search?: string) => Promise<QuotationListItem[]>
+  get: (id: number) => Promise<QuotationBundle | null>
+  create: (data: QuotationInput) => Promise<QuotationBundle>
+  update: (id: number, data: QuotationInput) => Promise<QuotationBundle>
+  remove: (id: number) => Promise<void>
+  finalize: (id: number) => Promise<QuotationBundle>
+  setStatus: (id: number, status: QuotationStatus) => Promise<QuotationBundle>
+  duplicate: (id: number) => Promise<QuotationBundle>
+  revise: (id: number) => Promise<QuotationBundle>
+}
+
+export type NumberingApi = {
+  get: () => Promise<NumberingConfig>
+  update: (patch: Partial<NumberingConfig>) => Promise<NumberingConfig>
+  peekNext: () => Promise<string>
+}
+
 export type QuotelyApi = {
   settings: SettingsApi
   company: CompanyApi
@@ -116,7 +138,10 @@ export type QuotelyApi = {
   chargeRules: ChargeRulesApi
   assets: AssetsApi
   quotationTemplates: QuotationTemplatesApi
+  quotations: QuotationsApi
+  numbering: NumberingApi
 }
 
 export type * from './types'
 export type * from './metadata'
+export type * from './quotation'

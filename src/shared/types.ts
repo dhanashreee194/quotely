@@ -3,6 +3,7 @@ import type {
   ItemColumnDataType,
   TemplateSectionType
 } from './metadata'
+import type { DiscountType, NumberingConfig, QuotationStatus } from './quotation'
 
 export type ChargeRuleType = 'percentage' | 'fixed'
 
@@ -234,3 +235,106 @@ export type QuotationTemplateBundle = QuotationTemplate & {
   sections: TemplateSectionWithFields[]
   itemColumns: ItemColumnDefinition[]
 }
+
+export type QuotationCustomValue = {
+  id: number
+  quotationId: number
+  fieldDefinitionId: number
+  value: string | null
+}
+
+export type QuotationCustomValueInput = {
+  fieldDefinitionId: number
+  value: string | null
+}
+
+export type QuotationItem = {
+  id: number
+  quotationId: number
+  displayOrder: number
+  productId: number | null
+  qty: number
+  rate: number
+  discount: number
+  discountType: DiscountType
+  taxPercent: number
+  amount: number
+  columnValues: Record<string, unknown>
+}
+
+export type QuotationItemInput = {
+  productId?: number | null
+  qty: number
+  rate: number
+  discount?: number
+  discountType?: DiscountType
+  taxPercent?: number
+  columnValues?: Record<string, unknown>
+}
+
+export type QuotationCharge = {
+  id: number
+  quotationId: number
+  name: string
+  type: 'percentage' | 'fixed'
+  value: number
+  appliesToSubtotal: boolean
+  amount: number
+}
+
+export type QuotationChargeInput = {
+  name: string
+  type: 'percentage' | 'fixed'
+  value: number
+  appliesToSubtotal?: boolean
+}
+
+export type Quotation = {
+  id: number
+  quotationNumber: string
+  date: string
+  customerId: number
+  templateId: number
+  status: QuotationStatus
+  currency: string
+  subtotal: number
+  discountTotal: number
+  taxTotal: number
+  grandTotal: number
+  notesInternal: string | null
+  notesCustomer: string | null
+  parentQuotationId: number | null
+  revisionNumber: number
+  createdBy: string | null
+  createdAt: string
+  updatedAt: string
+}
+
+export type QuotationListItem = Quotation & {
+  customerName: string | null
+  templateName: string | null
+}
+
+export type QuotationInput = {
+  date: string
+  customerId: number
+  templateId: number
+  status?: QuotationStatus
+  currency?: string
+  discountTotal?: number
+  notesInternal?: string | null
+  notesCustomer?: string | null
+  customValues?: QuotationCustomValueInput[]
+  items?: QuotationItemInput[]
+  charges?: QuotationChargeInput[]
+}
+
+export type QuotationBundle = Quotation & {
+  customerName: string | null
+  templateName: string | null
+  customValues: QuotationCustomValue[]
+  items: QuotationItem[]
+  charges: QuotationCharge[]
+}
+
+export type { NumberingConfig, QuotationStatus, DiscountType }

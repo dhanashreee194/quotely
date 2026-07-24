@@ -69,6 +69,22 @@ const api: QuotelyApi = {
       remove: (id) => ipcRenderer.invoke(IpcChannels.itemColumnsRemove, id),
       reorder: (id, direction) => ipcRenderer.invoke(IpcChannels.itemColumnsReorder, id, direction)
     }
+  },
+  quotations: {
+    list: (search) => ipcRenderer.invoke(IpcChannels.quotationsList, search),
+    get: (id) => ipcRenderer.invoke(IpcChannels.quotationsGet, id),
+    create: (data) => ipcRenderer.invoke(IpcChannels.quotationsCreate, data),
+    update: (id, data) => ipcRenderer.invoke(IpcChannels.quotationsUpdate, id, data),
+    remove: (id) => ipcRenderer.invoke(IpcChannels.quotationsRemove, id),
+    finalize: (id) => ipcRenderer.invoke(IpcChannels.quotationsFinalize, id),
+    setStatus: (id, status) => ipcRenderer.invoke(IpcChannels.quotationsSetStatus, id, status),
+    duplicate: (id) => ipcRenderer.invoke(IpcChannels.quotationsDuplicate, id),
+    revise: (id) => ipcRenderer.invoke(IpcChannels.quotationsRevise, id)
+  },
+  numbering: {
+    get: () => ipcRenderer.invoke(IpcChannels.numberingGet),
+    update: (patch) => ipcRenderer.invoke(IpcChannels.numberingUpdate, patch),
+    peekNext: () => ipcRenderer.invoke(IpcChannels.numberingPeek)
   }
 }
 

@@ -4,6 +4,7 @@ import theme from './theme'
 import AppLayout from './layout/AppLayout'
 import DashboardPage from './pages/Dashboard'
 import QuotationsPage from './pages/Quotations'
+import QuotationEditorPage from './pages/QuotationEditor'
 import CustomersPage from './pages/Customers'
 import ProductsPage from './pages/Products'
 import TemplatesPage from './pages/Templates'
@@ -18,6 +19,8 @@ export default function App(): React.JSX.Element {
           <Route element={<AppLayout />}>
             <Route index element={<DashboardPage />} />
             <Route path="quotations" element={<QuotationsPage />} />
+            <Route path="quotations/new" element={<QuotationEditorPage />} />
+            <Route path="quotations/:id" element={<QuotationEditorPage />} />
             <Route path="customers" element={<CustomersPage />} />
             <Route path="products" element={<ProductsPage />} />
             <Route path="templates" element={<TemplatesPage />} />

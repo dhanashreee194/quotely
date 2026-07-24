@@ -51,7 +51,20 @@ export const IpcChannels = {
   itemColumnsCreate: 'itemColumns:create',
   itemColumnsUpdate: 'itemColumns:update',
   itemColumnsRemove: 'itemColumns:remove',
-  itemColumnsReorder: 'itemColumns:reorder'
+  itemColumnsReorder: 'itemColumns:reorder',
+
+  quotationsList: 'quotations:list',
+  quotationsGet: 'quotations:get',
+  quotationsCreate: 'quotations:create',
+  quotationsUpdate: 'quotations:update',
+  quotationsRemove: 'quotations:remove',
+  quotationsFinalize: 'quotations:finalize',
+  quotationsSetStatus: 'quotations:setStatus',
+  quotationsDuplicate: 'quotations:duplicate',
+  quotationsRevise: 'quotations:revise',
+  numberingGet: 'numbering:get',
+  numberingUpdate: 'numbering:update',
+  numberingPeek: 'numbering:peek'
 } as const
 
 export type IpcChannel = (typeof IpcChannels)[keyof typeof IpcChannels]

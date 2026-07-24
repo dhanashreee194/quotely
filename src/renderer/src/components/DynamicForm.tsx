@@ -22,26 +22,42 @@ import { buildDynamicDefaultValues, buildDynamicZodSchema } from '../lib/dynamic
 type DynamicFormProps = {
   fields: CustomFieldDefinitionWithOptions[]
   submitLabel?: string
+  hideSubmit?: boolean
+  initialValues?: Record<string, unknown>
+  onChange?: (values: Record<string, unknown>) => void
   onSubmit?: (values: Record<string, unknown>) => void | Promise<void>
 }
 
 export default function DynamicForm({
   fields,
   submitLabel = 'Validate',
+  hideSubmit = false,
+  initialValues,
+  onChange,
   onSubmit
 }: DynamicFormProps): React.JSX.Element {
   const schema = useMemo(() => buildDynamicZodSchema(fields), [fields])
-  const defaults = useMemo(() => buildDynamicDefaultValues(fields), [fields])
+  const fieldSignature = fields.map((field) => `${field.id}:${field.type}:${field.required}`).join('|')
 
   const form = useForm<Record<string, unknown>>({
     resolver: zodResolver(schema),
-    defaultValues: defaults,
+    defaultValues: { ...buildDynamicDefaultValues(fields), ...initialValues },
     mode: 'onSubmit'
   })
 
   useEffect(() => {
-    form.reset(defaults)
-  }, [defaults, form])
+    form.reset({ ...buildDynamicDefaultValues(fields), ...initialValues })
+    // Reset when the field definitions change (or parent remounts with a new key for loaded data).
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [fieldSignature])
+
+  useEffect(() => {
+    if (!onChange) return
+    const subscription = form.watch((values) => {
+      onChange(values as Record<string, unknown>)
+    })
+    return () => subscription.unsubscribe()
+  }, [form, onChange])
 
   if (fields.length === 0) {
     return (
@@ -218,11 +234,13 @@ export default function DynamicForm({
           )
         })}
 
-        <Button type="submit" variant="contained" sx={{ alignSelf: 'flex-start' }}>
-          {submitLabel}
-        </Button>
+        {!hideSubmit && (
+          <Button type="submit" variant="contained" sx={{ alignSelf: 'flex-start' }}>
+            {submitLabel}
+          </Button>
+        )}
 
-        {form.formState.isSubmitSuccessful && (
+        {!hideSubmit && form.formState.isSubmitSuccessful && (
           <Alert severity="success">Validation passed.</Alert>
         )}
       </Stack>

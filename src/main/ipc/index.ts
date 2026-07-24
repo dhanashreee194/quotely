@@ -1,5 +1,6 @@
 import { ipcMain } from 'electron'
 import { IpcChannels } from '../../shared/ipc'
+import type { NumberingConfig, QuotationStatus } from '../../shared/quotation'
 import type {
   AssetKind,
   ChargeRuleInput,
@@ -8,6 +9,7 @@ import type {
   CustomerInput,
   ItemColumnDefinitionInput,
   ProductInput,
+  QuotationInput,
   QuotationTemplateInput,
   ReorderDirection,
   TemplateSectionInput,
@@ -55,6 +57,22 @@ import {
   updateQuotationTemplate,
   updateTemplateSection
 } from './quotationTemplates'
+import {
+  getNumberingConfig,
+  peekNextQuotationNumber,
+  updateNumberingConfig
+} from './numbering'
+import {
+  createQuotation,
+  duplicateQuotation,
+  finalizeQuotation,
+  getQuotation,
+  listQuotations,
+  removeQuotation,
+  reviseQuotation,
+  setQuotationStatus,
+  updateQuotation
+} from './quotations'
 import { getSetting, setSetting } from './settings'
 import {
   createTermsTemplate,
@@ -176,4 +194,24 @@ export function registerIpcHandlers(): void {
   ipcMain.handle(IpcChannels.itemColumnsReorder, (_event, id: number, direction: ReorderDirection) =>
     reorderItemColumn(id, direction)
   )
+
+  ipcMain.handle(IpcChannels.quotationsList, (_event, search?: string) => listQuotations(search))
+  ipcMain.handle(IpcChannels.quotationsGet, (_event, id: number) => getQuotation(id))
+  ipcMain.handle(IpcChannels.quotationsCreate, (_event, data: QuotationInput) => createQuotation(data))
+  ipcMain.handle(IpcChannels.quotationsUpdate, (_event, id: number, data: QuotationInput) =>
+    updateQuotation(id, data)
+  )
+  ipcMain.handle(IpcChannels.quotationsRemove, (_event, id: number) => removeQuotation(id))
+  ipcMain.handle(IpcChannels.quotationsFinalize, (_event, id: number) => finalizeQuotation(id))
+  ipcMain.handle(IpcChannels.quotationsSetStatus, (_event, id: number, status: QuotationStatus) =>
+    setQuotationStatus(id, status)
+  )
+  ipcMain.handle(IpcChannels.quotationsDuplicate, (_event, id: number) => duplicateQuotation(id))
+  ipcMain.handle(IpcChannels.quotationsRevise, (_event, id: number) => reviseQuotation(id))
+
+  ipcMain.handle(IpcChannels.numberingGet, () => getNumberingConfig())
+  ipcMain.handle(IpcChannels.numberingUpdate, (_event, patch: Partial<NumberingConfig>) =>
+    updateNumberingConfig(patch)
+  )
+  ipcMain.handle(IpcChannels.numberingPeek, () => peekNextQuotationNumber())
 }
