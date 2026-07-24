@@ -9,10 +9,12 @@ import Stack from '@mui/material/Stack'
 import Table from '@mui/material/Table'
 import TableBody from '@mui/material/TableBody'
 import TableCell from '@mui/material/TableCell'
+import TableContainer from '@mui/material/TableContainer'
 import TableHead from '@mui/material/TableHead'
 import TableRow from '@mui/material/TableRow'
 import Typography from '@mui/material/Typography'
 import Grid from '@mui/material/Grid'
+import PageShell from '../layout/PageShell'
 import AddBusinessOutlinedIcon from '@mui/icons-material/AddBusinessOutlined'
 import CheckCircleOutlinedIcon from '@mui/icons-material/CheckCircleOutlined'
 import DescriptionOutlinedIcon from '@mui/icons-material/DescriptionOutlined'
@@ -192,14 +194,10 @@ export default function DashboardPage(): React.JSX.Element {
   } as const
 
   return (
-    <Stack spacing={2.5}>
-      <Box>
-        <Typography variant="h4">Dashboard</Typography>
-        <Typography color="text.secondary" sx={{ mt: 0.5 }}>
-          Overview of quotations, pipeline value, and recent activity.
-        </Typography>
-      </Box>
-
+    <PageShell
+      title="Dashboard"
+      subtitle="Overview of quotations, pipeline value, and recent activity."
+    >
       <Grid container spacing={1.5} sx={{ alignItems: 'stretch' }}>
         <Grid size={{ xs: 12, sm: 6, md: 3 }}>
           <Button
@@ -256,28 +254,28 @@ export default function DashboardPage(): React.JSX.Element {
       {error && <Alert severity="error">{error}</Alert>}
 
       <Grid container spacing={1.5}>
-        <Grid size={{ xs: 12, sm: 6, md: 4, lg: 2 }}>
+        <Grid size={{ xs: 12, sm: 6, md: 4 }}>
           <StatCard
             label="Total Quotations"
             value={loading ? '—' : String(summary?.counts.total ?? 0)}
             icon={<RequestQuoteOutlinedIcon />}
           />
         </Grid>
-        <Grid size={{ xs: 12, sm: 6, md: 4, lg: 2 }}>
+        <Grid size={{ xs: 12, sm: 6, md: 4 }}>
           <StatCard
             label="Created Today"
             value={loading ? '—' : String(summary?.counts.createdToday ?? 0)}
             icon={<TodayOutlinedIcon />}
           />
         </Grid>
-        <Grid size={{ xs: 12, sm: 6, md: 4, lg: 2 }}>
+        <Grid size={{ xs: 12, sm: 6, md: 4 }}>
           <StatCard
             label="This Month"
             value={loading ? '—' : String(summary?.counts.createdThisMonth ?? 0)}
             icon={<CalendarMonthOutlinedIcon />}
           />
         </Grid>
-        <Grid size={{ xs: 12, sm: 6, md: 4, lg: 2 }}>
+        <Grid size={{ xs: 12, sm: 6, md: 4 }}>
           <StatCard
             label="Drafts"
             value={loading ? '—' : String(summary?.counts.drafts ?? 0)}
@@ -285,7 +283,7 @@ export default function DashboardPage(): React.JSX.Element {
             onClick={() => goStatus('Draft')}
           />
         </Grid>
-        <Grid size={{ xs: 12, sm: 6, md: 4, lg: 2 }}>
+        <Grid size={{ xs: 12, sm: 6, md: 4 }}>
           <StatCard
             label="Finalized"
             value={loading ? '—' : String(summary?.counts.finalized ?? 0)}
@@ -293,7 +291,7 @@ export default function DashboardPage(): React.JSX.Element {
             onClick={() => goStatus('Finalized')}
           />
         </Grid>
-        <Grid size={{ xs: 12, sm: 6, md: 4, lg: 2 }}>
+        <Grid size={{ xs: 12, sm: 6, md: 4 }}>
           <StatCard
             label="Accepted"
             value={loading ? '—' : String(summary?.counts.accepted ?? 0)}
@@ -301,7 +299,7 @@ export default function DashboardPage(): React.JSX.Element {
             onClick={() => goStatus('Accepted')}
           />
         </Grid>
-        <Grid size={{ xs: 12, lg: 12 }}>
+        <Grid size={{ xs: 12 }}>
           <StatCard
             label="Total Value (This Month)"
             value={loading ? '—' : money(summary?.totalValueThisMonth ?? 0)}
@@ -326,13 +324,13 @@ export default function DashboardPage(): React.JSX.Element {
       )}
 
       <Grid container spacing={2}>
-        <Grid size={{ xs: 12, md: 7 }}>
-          <Paper elevation={0} sx={{ p: 2, border: '1px solid', borderColor: 'divider' }}>
+        <Grid size={{ xs: 12, lg: 7 }}>
+          <Paper elevation={0} sx={{ p: 2, border: '1px solid', borderColor: 'divider', minWidth: 0 }}>
             <Typography variant="h6" sx={{ mb: 1 }}>
               Quotations per month
             </Typography>
             {!loading && monthHasData ? (
-              <Box sx={{ width: '100%', height: 240 }}>
+              <Box sx={{ width: '100%', height: 240, minWidth: 0 }}>
                 <ResponsiveContainer>
                   <BarChart data={summary?.byMonth ?? []} margin={{ top: 8, right: 8, left: 0, bottom: 0 }}>
                     <XAxis dataKey="label" tick={{ fontSize: 12, fill: theme.palette.text.secondary }} />
@@ -355,13 +353,13 @@ export default function DashboardPage(): React.JSX.Element {
           </Paper>
         </Grid>
 
-        <Grid size={{ xs: 12, md: 5 }}>
-          <Paper elevation={0} sx={{ p: 2, border: '1px solid', borderColor: 'divider' }}>
+        <Grid size={{ xs: 12, lg: 5 }}>
+          <Paper elevation={0} sx={{ p: 2, border: '1px solid', borderColor: 'divider', minWidth: 0 }}>
             <Typography variant="h6" sx={{ mb: 1 }}>
               Status breakdown
             </Typography>
             {!loading && statusChartData.length > 0 ? (
-              <Box sx={{ width: '100%', height: 240 }}>
+              <Box sx={{ width: '100%', height: 240, minWidth: 0 }}>
                 <ResponsiveContainer>
                   <PieChart>
                     <Pie
@@ -384,7 +382,7 @@ export default function DashboardPage(): React.JSX.Element {
               <ChartEmpty message="Status mix will appear once you have quotations." />
             )}
             {statusChartData.length > 0 && (
-              <Stack direction="row" spacing={1} sx={{ flexWrap: 'wrap', gap: 1, mt: 0.5 }}>
+              <Stack direction="row" spacing={1} useFlexGap sx={{ flexWrap: 'wrap', gap: 1, mt: 0.5 }}>
                 {statusChartData.map((row) => (
                   <Chip
                     key={row.status}
@@ -404,59 +402,61 @@ export default function DashboardPage(): React.JSX.Element {
         </Grid>
       </Grid>
 
-      <Paper elevation={0} sx={{ border: '1px solid', borderColor: 'divider' }}>
+      <Paper elevation={0} sx={{ border: '1px solid', borderColor: 'divider', minWidth: 0 }}>
         <Box sx={{ px: 2, pt: 2, pb: 1 }}>
           <Typography variant="h6">Recent activity</Typography>
           <Typography variant="body2" color="text.secondary">
             Last updated quotations
           </Typography>
         </Box>
-        <Table size="small">
-          <TableHead>
-            <TableRow>
-              <TableCell>Number</TableCell>
-              <TableCell>Customer</TableCell>
-              <TableCell>Status</TableCell>
-              <TableCell align="right">Amount</TableCell>
-              <TableCell align="right">Updated</TableCell>
-            </TableRow>
-          </TableHead>
-          <TableBody>
-            {(summary?.recent.length ?? 0) === 0 && (
+        <TableContainer sx={{ overflowX: 'auto' }}>
+          <Table size="small" sx={{ minWidth: 520 }}>
+            <TableHead>
               <TableRow>
-                <TableCell colSpan={5}>
-                  <Typography color="text.secondary" sx={{ py: 2 }}>
-                    {loading ? 'Loading…' : 'No recent quotations yet.'}
-                  </Typography>
-                </TableCell>
+                <TableCell>Number</TableCell>
+                <TableCell>Customer</TableCell>
+                <TableCell>Status</TableCell>
+                <TableCell align="right">Amount</TableCell>
+                <TableCell align="right">Updated</TableCell>
               </TableRow>
-            )}
-            {summary?.recent.map((row) => (
-              <TableRow
-                key={row.id}
-                hover
-                sx={{ cursor: 'pointer' }}
-                onClick={() => navigate(`/quotations/${row.id}`)}
-              >
-                <TableCell>{row.quotationNumber}</TableCell>
-                <TableCell>{row.customerName ?? '—'}</TableCell>
-                <TableCell>
-                  <Chip
-                    size="small"
-                    label={row.status}
-                    sx={{
-                      bgcolor: `${STATUS_COLORS[row.status]}22`,
-                      borderColor: STATUS_COLORS[row.status]
-                    }}
-                    variant="outlined"
-                  />
-                </TableCell>
-                <TableCell align="right">{money(row.grandTotal)}</TableCell>
-                <TableCell align="right">{formatRelativeTime(row.updatedAt)}</TableCell>
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
+            </TableHead>
+            <TableBody>
+              {(summary?.recent.length ?? 0) === 0 && (
+                <TableRow>
+                  <TableCell colSpan={5}>
+                    <Typography color="text.secondary" sx={{ py: 2 }}>
+                      {loading ? 'Loading…' : 'No recent quotations yet.'}
+                    </Typography>
+                  </TableCell>
+                </TableRow>
+              )}
+              {summary?.recent.map((row) => (
+                <TableRow
+                  key={row.id}
+                  hover
+                  sx={{ cursor: 'pointer' }}
+                  onClick={() => navigate(`/quotations/${row.id}`)}
+                >
+                  <TableCell>{row.quotationNumber}</TableCell>
+                  <TableCell>{row.customerName ?? '—'}</TableCell>
+                  <TableCell>
+                    <Chip
+                      size="small"
+                      label={row.status}
+                      sx={{
+                        bgcolor: `${STATUS_COLORS[row.status]}22`,
+                        borderColor: STATUS_COLORS[row.status]
+                      }}
+                      variant="outlined"
+                    />
+                  </TableCell>
+                  <TableCell align="right">{money(row.grandTotal)}</TableCell>
+                  <TableCell align="right">{formatRelativeTime(row.updatedAt)}</TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </TableContainer>
       </Paper>
 
       {summary && total > 0 && (
@@ -464,6 +464,6 @@ export default function DashboardPage(): React.JSX.Element {
           All-time value: {money(summary.totalValueAllTime)}
         </Typography>
       )}
-    </Stack>
+    </PageShell>
   )
 }

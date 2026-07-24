@@ -246,12 +246,27 @@
 @media screen {
   .qd-screen-frame {
     background: #e8ecea;
-    padding: 24px 12px 48px;
+    padding: 16px 8px 40px;
     min-height: 100%;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
   }
 
   .qd-page {
     box-shadow: 0 8px 28px rgba(26, 36, 33, 0.12);
+  }
+}
+
+/* Shrink on-screen preview to fit narrow windows; print/PDF layout stays A4 mm. */
+@media screen and (max-width: 900px) {
+  .qd-screen-frame .qd-page {
+    zoom: 0.82;
+  }
+}
+
+@media screen and (max-width: 720px) {
+  .qd-screen-frame .qd-page {
+    zoom: 0.68;
   }
 }
 

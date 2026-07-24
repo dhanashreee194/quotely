@@ -7,7 +7,7 @@ import Box from '@mui/material/Box'
 import Button from '@mui/material/Button'
 import Checkbox from '@mui/material/Checkbox'
 import Chip from '@mui/material/Chip'
-import Dialog from '@mui/material/Dialog'
+import ResponsiveDialog from '../components/ResponsiveDialog'
 import DialogActions from '@mui/material/DialogActions'
 import DialogContent from '@mui/material/DialogContent'
 import DialogTitle from '@mui/material/DialogTitle'
@@ -28,6 +28,7 @@ import Tabs from '@mui/material/Tabs'
 import Table from '@mui/material/Table'
 import TableBody from '@mui/material/TableBody'
 import TableCell from '@mui/material/TableCell'
+import TableContainer from '@mui/material/TableContainer'
 import TableHead from '@mui/material/TableHead'
 import TableRow from '@mui/material/TableRow'
 import TextField from '@mui/material/TextField'
@@ -399,8 +400,12 @@ export default function QuotationTemplateEditor(): React.JSX.Element {
 
   return (
     <Stack spacing={2}>
-      <Stack direction="row" sx={{ justifyContent: 'space-between', alignItems: 'center' }}>
-        <Box>
+      <Stack
+        direction={{ xs: 'column', sm: 'row' }}
+        spacing={1.5}
+        sx={{ justifyContent: 'space-between', alignItems: { sm: 'flex-start' } }}
+      >
+        <Box sx={{ minWidth: 0 }}>
           <Typography variant="h5">Quotation templates</Typography>
           <Typography color="text.secondary">
             Metadata-driven sections, custom fields, and item columns. Reserved keys (
@@ -420,7 +425,10 @@ export default function QuotationTemplateEditor(): React.JSX.Element {
       )}
 
       <Stack direction={{ xs: 'column', md: 'row' }} spacing={2} sx={{ alignItems: 'stretch' }}>
-        <Paper variant="outlined" sx={{ width: { md: 280 }, p: 1, flexShrink: 0 }}>
+        <Paper
+          variant="outlined"
+          sx={{ width: { xs: '100%', md: 280 }, maxWidth: '100%', p: 1, flexShrink: 0, minWidth: 0 }}
+        >
           <List dense>
             {templates.map((template) => (
               <ListItemButton
@@ -447,14 +455,18 @@ export default function QuotationTemplateEditor(): React.JSX.Element {
             <Typography color="text.secondary">Select or create a template.</Typography>
           ) : (
             <Stack spacing={2}>
-              <Stack direction="row" sx={{ justifyContent: 'space-between', alignItems: 'center' }}>
-                <Box>
+              <Stack
+                direction={{ xs: 'column', sm: 'row' }}
+                spacing={1}
+                sx={{ justifyContent: 'space-between', alignItems: { sm: 'flex-start' } }}
+              >
+                <Box sx={{ minWidth: 0 }}>
                   <Typography variant="h6">{bundle.name}</Typography>
                   <Typography color="text.secondary" variant="body2">
                     {bundle.description || 'No description'}
                   </Typography>
                 </Box>
-                <Stack direction="row" spacing={1}>
+                <Stack direction="row" spacing={0.5} useFlexGap sx={{ flexWrap: 'wrap' }}>
                   <IconButton
                     aria-label="Set default"
                     onClick={() =>
@@ -495,6 +507,9 @@ export default function QuotationTemplateEditor(): React.JSX.Element {
                 onChange={(_e, value: 'sections' | 'columns' | 'preview') =>
                   store.setEditorTab(value)
                 }
+                variant="scrollable"
+                scrollButtons="auto"
+                allowScrollButtonsMobile
               >
                 <Tab label="Sections & fields" value="sections" />
                 <Tab label="Item columns" value="columns" />
@@ -503,17 +518,20 @@ export default function QuotationTemplateEditor(): React.JSX.Element {
 
               {store.editorTab === 'sections' && (
                 <Stack direction={{ xs: 'column', lg: 'row' }} spacing={2}>
-                  <Box sx={{ flex: 1 }}>
+                  <Box sx={{ flex: 1, minWidth: 0 }}>
                     <Stack
                       direction="row"
-                      sx={{ justifyContent: 'space-between', alignItems: 'center', mb: 1 }}
+                      spacing={1}
+                      useFlexGap
+                      sx={{ justifyContent: 'space-between', alignItems: 'center', mb: 1, flexWrap: 'wrap' }}
                     >
                       <Typography variant="subtitle1">Sections</Typography>
                       <Button size="small" startIcon={<AddIcon />} onClick={store.openSectionCreate}>
                         Add
                       </Button>
                     </Stack>
-                    <Table size="small">
+                    <TableContainer sx={{ overflowX: 'auto' }}>
+                    <Table size="small" sx={{ minWidth: 360 }}>
                       <TableHead>
                         <TableRow>
                           <TableCell>Name</TableCell>
@@ -594,12 +612,15 @@ export default function QuotationTemplateEditor(): React.JSX.Element {
                         ))}
                       </TableBody>
                     </Table>
+                    </TableContainer>
                   </Box>
 
-                  <Box sx={{ flex: 1 }}>
+                  <Box sx={{ flex: 1, minWidth: 0 }}>
                     <Stack
                       direction="row"
-                      sx={{ justifyContent: 'space-between', alignItems: 'center', mb: 1 }}
+                      spacing={1}
+                      useFlexGap
+                      sx={{ justifyContent: 'space-between', alignItems: 'center', mb: 1, flexWrap: 'wrap' }}
                     >
                       <Typography variant="subtitle1">
                         Fields {selectedSection ? `· ${selectedSection.name}` : ''}
@@ -616,7 +637,8 @@ export default function QuotationTemplateEditor(): React.JSX.Element {
                     {!selectedSection ? (
                       <Typography color="text.secondary">Select a section.</Typography>
                     ) : (
-                      <Table size="small">
+                      <TableContainer sx={{ overflowX: 'auto' }}>
+                      <Table size="small" sx={{ minWidth: 480 }}>
                         <TableHead>
                           <TableRow>
                             <TableCell>Label</TableCell>
@@ -689,6 +711,7 @@ export default function QuotationTemplateEditor(): React.JSX.Element {
                           ))}
                         </TableBody>
                       </Table>
+                      </TableContainer>
                     )}
                   </Box>
                 </Stack>
@@ -698,14 +721,17 @@ export default function QuotationTemplateEditor(): React.JSX.Element {
                 <Stack spacing={1}>
                   <Stack
                     direction="row"
-                    sx={{ justifyContent: 'space-between', alignItems: 'center' }}
+                    spacing={1}
+                    useFlexGap
+                    sx={{ justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap' }}
                   >
                     <Typography variant="subtitle1">Item table columns</Typography>
                     <Button size="small" startIcon={<AddIcon />} onClick={store.openColumnCreate}>
                       Add column
                     </Button>
                   </Stack>
-                  <Table size="small">
+                  <TableContainer sx={{ overflowX: 'auto' }}>
+                  <Table size="small" sx={{ minWidth: 560 }}>
                     <TableHead>
                       <TableRow>
                         <TableCell>Label</TableCell>
@@ -771,12 +797,13 @@ export default function QuotationTemplateEditor(): React.JSX.Element {
                       ))}
                     </TableBody>
                   </Table>
+                  </TableContainer>
                 </Stack>
               )}
 
               {store.editorTab === 'preview' && (
                 <Stack spacing={2}>
-                  <FormControl sx={{ maxWidth: 320 }} size="small">
+                  <FormControl sx={{ width: '100%', maxWidth: 320 }} size="small">
                     <InputLabel id="preview-section-label">Section</InputLabel>
                     <Select
                       labelId="preview-section-label"
@@ -807,7 +834,7 @@ export default function QuotationTemplateEditor(): React.JSX.Element {
         </Paper>
       </Stack>
 
-      <Dialog open={store.templateDialogOpen} onClose={store.closeTemplateDialog} fullWidth maxWidth="sm">
+      <ResponsiveDialog open={store.templateDialogOpen} onClose={store.closeTemplateDialog} fullWidth maxWidth="sm">
         <DialogTitle>
           {store.editingTemplateId == null ? 'New template' : 'Edit template'}
         </DialogTitle>
@@ -867,9 +894,9 @@ export default function QuotationTemplateEditor(): React.JSX.Element {
             </Button>
           </DialogActions>
         </Box>
-      </Dialog>
+      </ResponsiveDialog>
 
-      <Dialog open={store.sectionDialogOpen} onClose={store.closeSectionDialog} fullWidth maxWidth="xs">
+      <ResponsiveDialog open={store.sectionDialogOpen} onClose={store.closeSectionDialog} fullWidth maxWidth="xs">
         <DialogTitle>
           {store.editingSectionId == null ? 'Add section' : 'Edit section'}
         </DialogTitle>
@@ -929,9 +956,9 @@ export default function QuotationTemplateEditor(): React.JSX.Element {
             </Button>
           </DialogActions>
         </Box>
-      </Dialog>
+      </ResponsiveDialog>
 
-      <Dialog open={store.fieldDialogOpen} onClose={store.closeFieldDialog} fullWidth maxWidth="sm">
+      <ResponsiveDialog open={store.fieldDialogOpen} onClose={store.closeFieldDialog} fullWidth maxWidth="sm">
         <DialogTitle>{store.editingFieldId == null ? 'Add field' : 'Edit field'}</DialogTitle>
         <Box component="form" onSubmit={onSaveField}>
           <DialogContent>
@@ -1114,9 +1141,9 @@ export default function QuotationTemplateEditor(): React.JSX.Element {
             </Button>
           </DialogActions>
         </Box>
-      </Dialog>
+      </ResponsiveDialog>
 
-      <Dialog open={store.columnDialogOpen} onClose={store.closeColumnDialog} fullWidth maxWidth="sm">
+      <ResponsiveDialog open={store.columnDialogOpen} onClose={store.closeColumnDialog} fullWidth maxWidth="sm">
         <DialogTitle>
           {store.editingColumnId == null ? 'Add column' : 'Edit column'}
         </DialogTitle>
@@ -1218,7 +1245,7 @@ export default function QuotationTemplateEditor(): React.JSX.Element {
             </Button>
           </DialogActions>
         </Box>
-      </Dialog>
+      </ResponsiveDialog>
     </Stack>
   )
 }

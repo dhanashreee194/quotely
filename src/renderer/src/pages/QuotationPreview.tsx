@@ -123,33 +123,40 @@ export default function QuotationPreviewPage(): React.JSX.Element {
       {!isHeadless && (
         <Stack
           className="qd-no-print"
-          direction="row"
+          direction={{ xs: 'column', sm: 'row' }}
           spacing={1}
+          useFlexGap
           sx={{
             position: 'sticky',
             top: 0,
             zIndex: 2,
-            px: 2,
+            px: { xs: 1.5, sm: 2 },
             py: 1.5,
             bgcolor: 'background.paper',
             borderBottom: 1,
             borderColor: 'divider',
-            alignItems: 'center',
-            justifyContent: 'space-between'
+            alignItems: { xs: 'stretch', sm: 'center' },
+            justifyContent: 'space-between',
+            flexWrap: 'wrap'
           }}
         >
-          <Stack direction="row" spacing={1} sx={{ alignItems: 'center' }}>
+          <Stack
+            direction="row"
+            spacing={1}
+            useFlexGap
+            sx={{ alignItems: 'center', flexWrap: 'wrap', minWidth: 0 }}
+          >
             <Button
               startIcon={<ArrowBackIcon />}
               onClick={() => navigate(`/quotations/${quotationId}`)}
             >
               Back
             </Button>
-            <Typography variant="subtitle1">
+            <Typography variant="subtitle1" sx={{ wordBreak: 'break-word' }}>
               Preview {model?.quotation.quotationNumber ?? ''}
             </Typography>
           </Stack>
-          <Stack direction="row" spacing={1}>
+          <Stack direction="row" spacing={1} useFlexGap sx={{ flexWrap: 'wrap' }}>
             <Button
               variant="outlined"
               startIcon={<PictureAsPdfIcon />}

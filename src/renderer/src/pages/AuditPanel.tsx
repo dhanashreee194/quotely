@@ -5,6 +5,7 @@ import Stack from '@mui/material/Stack'
 import Table from '@mui/material/Table'
 import TableBody from '@mui/material/TableBody'
 import TableCell from '@mui/material/TableCell'
+import TableContainer from '@mui/material/TableContainer'
 import TableHead from '@mui/material/TableHead'
 import TableRow from '@mui/material/TableRow'
 import TextField from '@mui/material/TextField'
@@ -49,14 +50,14 @@ export default function AuditPanel(): React.JSX.Element {
         restore events.
       </Typography>
 
-      <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1.5}>
+      <Stack direction="row" spacing={1.5} useFlexGap sx={{ flexWrap: 'wrap' }}>
         <TextField
           select
           size="small"
           label="Action"
           value={action}
           onChange={(event) => setAction(event.target.value)}
-          sx={{ minWidth: 180 }}
+          sx={{ flex: '1 1 160px', minWidth: 0, maxWidth: { sm: 240 } }}
         >
           <MenuItem value="">All actions</MenuItem>
           {actions.map((item) => (
@@ -72,6 +73,7 @@ export default function AuditPanel(): React.JSX.Element {
           value={dateFrom}
           onChange={(event) => setDateFrom(event.target.value)}
           slotProps={{ inputLabel: { shrink: true } }}
+          sx={{ flex: '1 1 140px', minWidth: 0 }}
         />
         <TextField
           size="small"
@@ -80,40 +82,43 @@ export default function AuditPanel(): React.JSX.Element {
           value={dateTo}
           onChange={(event) => setDateTo(event.target.value)}
           slotProps={{ inputLabel: { shrink: true } }}
+          sx={{ flex: '1 1 140px', minWidth: 0 }}
         />
       </Stack>
 
       {error && <Alert severity="error">{error}</Alert>}
 
-      <Table size="small">
-        <TableHead>
-          <TableRow>
-            <TableCell>When</TableCell>
-            <TableCell>User</TableCell>
-            <TableCell>Action</TableCell>
-            <TableCell>Entity</TableCell>
-            <TableCell>Entity id</TableCell>
-          </TableRow>
-        </TableHead>
-        <TableBody>
-          {rows.length === 0 && (
+      <TableContainer sx={{ overflowX: 'auto' }}>
+        <Table size="small" sx={{ minWidth: 560 }}>
+          <TableHead>
             <TableRow>
-              <TableCell colSpan={5}>
-                <Typography color="text.secondary">No audit entries yet.</Typography>
-              </TableCell>
+              <TableCell>When</TableCell>
+              <TableCell>User</TableCell>
+              <TableCell>Action</TableCell>
+              <TableCell>Entity</TableCell>
+              <TableCell>Entity id</TableCell>
             </TableRow>
-          )}
-          {rows.map((row) => (
-            <TableRow key={row.id} hover>
-              <TableCell>{row.datetime.replace('T', ' ').slice(0, 19)}</TableCell>
-              <TableCell>{row.user ?? '—'}</TableCell>
-              <TableCell>{row.action}</TableCell>
-              <TableCell>{row.entityType}</TableCell>
-              <TableCell>{row.entityId ?? '—'}</TableCell>
-            </TableRow>
-          ))}
-        </TableBody>
-      </Table>
+          </TableHead>
+          <TableBody>
+            {rows.length === 0 && (
+              <TableRow>
+                <TableCell colSpan={5}>
+                  <Typography color="text.secondary">No audit entries yet.</Typography>
+                </TableCell>
+              </TableRow>
+            )}
+            {rows.map((row) => (
+              <TableRow key={row.id} hover>
+                <TableCell>{row.datetime.replace('T', ' ').slice(0, 19)}</TableCell>
+                <TableCell>{row.user ?? '—'}</TableCell>
+                <TableCell>{row.action}</TableCell>
+                <TableCell>{row.entityType}</TableCell>
+                <TableCell>{row.entityId ?? '—'}</TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
+      </TableContainer>
     </Stack>
   )
 }

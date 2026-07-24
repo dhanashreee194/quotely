@@ -4,7 +4,6 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import Alert from '@mui/material/Alert'
 import Box from '@mui/material/Box'
 import Button from '@mui/material/Button'
-import Dialog from '@mui/material/Dialog'
 import DialogActions from '@mui/material/DialogActions'
 import DialogContent from '@mui/material/DialogContent'
 import DialogTitle from '@mui/material/DialogTitle'
@@ -13,14 +12,19 @@ import Stack from '@mui/material/Stack'
 import Table from '@mui/material/Table'
 import TableBody from '@mui/material/TableBody'
 import TableCell from '@mui/material/TableCell'
+import TableContainer from '@mui/material/TableContainer'
 import TableHead from '@mui/material/TableHead'
 import TableRow from '@mui/material/TableRow'
 import TextField from '@mui/material/TextField'
 import Typography from '@mui/material/Typography'
+import useMediaQuery from '@mui/material/useMediaQuery'
+import { useTheme } from '@mui/material/styles'
 import AddIcon from '@mui/icons-material/Add'
 import DeleteOutlinedIcon from '@mui/icons-material/DeleteOutlined'
 import EditOutlinedIcon from '@mui/icons-material/EditOutlined'
 import type { Product } from '../../../shared/types'
+import ResponsiveDialog from '../components/ResponsiveDialog'
+import PageShell from '../layout/PageShell'
 import { productFormSchema, type ProductFormValues } from '../lib/validation'
 import { useProductsStore } from '../stores/productsStore'
 
@@ -36,6 +40,8 @@ const emptyValues: ProductFormValues = {
 }
 
 export default function ProductsPage(): React.JSX.Element {
+  const theme = useTheme()
+  const showSecondaryCols = useMediaQuery(theme.breakpoints.up('md'))
   const { search, setSearch, dialogOpen, editingId, openCreate, openEdit, closeDialog } =
     useProductsStore()
   const [rows, setRows] = useState<Product[]>([])
@@ -112,72 +118,77 @@ export default function ProductsPage(): React.JSX.Element {
   }
 
   return (
-    <Stack spacing={2}>
-      <Stack direction="row" sx={{ justifyContent: 'space-between', alignItems: 'center' }}>
-        <Box>
-          <Typography variant="h4">Products</Typography>
-          <Typography color="text.secondary">
-            Manage products and pricing used in quotations.
-          </Typography>
-        </Box>
+    <PageShell
+      title="Products"
+      subtitle="Manage products and pricing used in quotations."
+      actions={
         <Button variant="contained" startIcon={<AddIcon />} onClick={openCreate}>
           Add product
         </Button>
-      </Stack>
-
+      }
+    >
       <TextField
         size="small"
         label="Search"
         placeholder="Name, code, category, or HSN/SAC"
         value={search}
         onChange={(event) => setSearch(event.target.value)}
-        sx={{ maxWidth: 360 }}
+        fullWidth
+        sx={{ maxWidth: { sm: 360 } }}
       />
 
       {error && <Alert severity="error">{error}</Alert>}
 
-      <Table size="small">
-        <TableHead>
-          <TableRow>
-            <TableCell>Code</TableCell>
-            <TableCell>Name</TableCell>
-            <TableCell>Unit</TableCell>
-            <TableCell align="right">Price</TableCell>
-            <TableCell align="right">Tax %</TableCell>
-            <TableCell>Category</TableCell>
-            <TableCell align="right">Actions</TableCell>
-          </TableRow>
-        </TableHead>
-        <TableBody>
-          {!loading && rows.length === 0 && (
+      <TableContainer sx={{ overflowX: 'auto' }}>
+        <Table size="small" sx={{ minWidth: 560 }}>
+          <TableHead>
             <TableRow>
-              <TableCell colSpan={7}>
-                <Typography color="text.secondary">No products found.</Typography>
-              </TableCell>
+              <TableCell>Code</TableCell>
+              <TableCell>Name</TableCell>
+              {showSecondaryCols && <TableCell>Unit</TableCell>}
+              <TableCell align="right">Price</TableCell>
+              {showSecondaryCols && <TableCell align="right">Tax %</TableCell>}
+              {showSecondaryCols && <TableCell>Category</TableCell>}
+              <TableCell align="right">Actions</TableCell>
             </TableRow>
-          )}
-          {rows.map((row) => (
-            <TableRow key={row.id} hover>
-              <TableCell>{row.itemCode}</TableCell>
-              <TableCell>{row.name}</TableCell>
-              <TableCell>{row.unit ?? '—'}</TableCell>
-              <TableCell align="right">{row.standardPrice.toFixed(2)}</TableCell>
-              <TableCell align="right">{row.taxPercent.toFixed(2)}</TableCell>
-              <TableCell>{row.category ?? '—'}</TableCell>
-              <TableCell align="right">
-                <IconButton aria-label="Edit" onClick={() => openEdit(row.id)} size="small">
-                  <EditOutlinedIcon fontSize="small" />
-                </IconButton>
-                <IconButton aria-label="Delete" onClick={() => void handleDelete(row.id)} size="small">
-                  <DeleteOutlinedIcon fontSize="small" />
-                </IconButton>
-              </TableCell>
-            </TableRow>
-          ))}
-        </TableBody>
-      </Table>
+          </TableHead>
+          <TableBody>
+            {!loading && rows.length === 0 && (
+              <TableRow>
+                <TableCell colSpan={showSecondaryCols ? 7 : 4}>
+                  <Typography color="text.secondary">No products found.</Typography>
+                </TableCell>
+              </TableRow>
+            )}
+            {rows.map((row) => (
+              <TableRow key={row.id} hover>
+                <TableCell>{row.itemCode}</TableCell>
+                <TableCell>{row.name}</TableCell>
+                {showSecondaryCols && <TableCell>{row.unit ?? '—'}</TableCell>}
+                <TableCell align="right">{row.standardPrice.toFixed(2)}</TableCell>
+                {showSecondaryCols && (
+                  <TableCell align="right">{row.taxPercent.toFixed(2)}</TableCell>
+                )}
+                {showSecondaryCols && <TableCell>{row.category ?? '—'}</TableCell>}
+                <TableCell align="right" sx={{ whiteSpace: 'nowrap' }}>
+                  <IconButton aria-label="Edit" onClick={() => openEdit(row.id)} size="small">
+                    <EditOutlinedIcon fontSize="small" />
+                  </IconButton>
+                  <IconButton
+                    aria-label="Delete"
+                    onClick={() => void handleDelete(row.id)}
+                    size="small"
+                  >
+                    <DeleteOutlinedIcon fontSize="small" />
+                  </IconButton>
+                </TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
+      </TableContainer>
 
-      <Dialog open={dialogOpen} onClose={closeDialog} fullWidth maxWidth="sm">
+      <ResponsiveDialog open={dialogOpen} onClose={closeDialog} maxWidth="sm">
         <DialogTitle>{editingId == null ? 'Add product' : 'Edit product'}</DialogTitle>
         <Box component="form" onSubmit={onSubmit}>
           <DialogContent>
@@ -315,7 +326,7 @@ export default function ProductsPage(): React.JSX.Element {
             </Button>
           </DialogActions>
         </Box>
-      </Dialog>
-    </Stack>
+      </ResponsiveDialog>
+    </PageShell>
   )
 }

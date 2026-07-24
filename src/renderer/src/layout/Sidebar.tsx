@@ -24,23 +24,17 @@ const navItems = [
   { label: 'Settings', path: '/settings', icon: <SettingsOutlinedIcon /> }
 ] as const
 
-type SidebarProps = {
+export type SidebarProps = {
   width: number
+  /** permanent on wide screens; temporary (hamburger) on narrow */
+  variant: 'permanent' | 'temporary'
+  open: boolean
+  onClose: () => void
 }
 
-export default function Sidebar({ width }: SidebarProps): React.JSX.Element {
+function NavContent({ onNavigate }: { onNavigate?: () => void }): React.JSX.Element {
   return (
-    <Drawer
-      variant="permanent"
-      sx={{
-        width,
-        flexShrink: 0,
-        [`& .MuiDrawer-paper`]: {
-          width,
-          boxSizing: 'border-box'
-        }
-      }}
-    >
+    <>
       <Toolbar sx={{ px: 2, gap: 1.25, minHeight: 64 }}>
         <Box
           component="img"
@@ -67,6 +61,7 @@ export default function Sidebar({ width }: SidebarProps): React.JSX.Element {
               component={NavLink}
               to={item.path}
               end={item.path === '/'}
+              onClick={onNavigate}
               sx={{
                 borderRadius: 1,
                 mb: 0.5,
@@ -86,6 +81,50 @@ export default function Sidebar({ width }: SidebarProps): React.JSX.Element {
           ))}
         </List>
       </Box>
+    </>
+  )
+}
+
+export default function Sidebar({
+  width,
+  variant,
+  open,
+  onClose
+}: SidebarProps): React.JSX.Element {
+  const paperSx = {
+    width,
+    boxSizing: 'border-box' as const
+  }
+
+  if (variant === 'temporary') {
+    return (
+      <Drawer
+        variant="temporary"
+        open={open}
+        onClose={onClose}
+        ModalProps={{ keepMounted: true }}
+        sx={{
+          display: { xs: 'block', md: 'none' },
+          [`& .MuiDrawer-paper`]: paperSx
+        }}
+      >
+        <NavContent onNavigate={onClose} />
+      </Drawer>
+    )
+  }
+
+  return (
+    <Drawer
+      variant="permanent"
+      open
+      sx={{
+        display: { xs: 'none', md: 'block' },
+        width,
+        flexShrink: 0,
+        [`& .MuiDrawer-paper`]: paperSx
+      }}
+    >
+      <NavContent />
     </Drawer>
   )
 }

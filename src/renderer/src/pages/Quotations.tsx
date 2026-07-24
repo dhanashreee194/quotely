@@ -1,7 +1,6 @@
 import { useCallback, useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import Alert from '@mui/material/Alert'
-import Box from '@mui/material/Box'
 import Button from '@mui/material/Button'
 import Chip from '@mui/material/Chip'
 import IconButton from '@mui/material/IconButton'
@@ -11,10 +10,14 @@ import Stack from '@mui/material/Stack'
 import Table from '@mui/material/Table'
 import TableBody from '@mui/material/TableBody'
 import TableCell from '@mui/material/TableCell'
+import TableContainer from '@mui/material/TableContainer'
 import TableHead from '@mui/material/TableHead'
 import TableRow from '@mui/material/TableRow'
 import TextField from '@mui/material/TextField'
 import Typography from '@mui/material/Typography'
+import useMediaQuery from '@mui/material/useMediaQuery'
+import { useTheme } from '@mui/material/styles'
+import PageShell from '../layout/PageShell'
 import AddIcon from '@mui/icons-material/Add'
 import ContentCopyIcon from '@mui/icons-material/ContentCopy'
 import DeleteOutlinedIcon from '@mui/icons-material/DeleteOutlined'
@@ -32,7 +35,10 @@ const SEARCH_DEBOUNCE_MS = 300
 
 export default function QuotationsPage(): React.JSX.Element {
   const navigate = useNavigate()
+  const theme = useTheme()
+  const showSecondaryCols = useMediaQuery(theme.breakpoints.up('md'))
   const {
+
     search,
     customerId,
     status,
@@ -80,16 +86,14 @@ export default function QuotationsPage(): React.JSX.Element {
     void load()
   }, [load])
 
+  const filterFieldSx = { flex: '1 1 160px', minWidth: 0, maxWidth: { sm: 280 } }
+
   return (
-    <Stack spacing={2}>
-      <Stack direction="row" sx={{ justifyContent: 'space-between', alignItems: 'center' }}>
-        <Box>
-          <Typography variant="h4">Quotations</Typography>
-          <Typography color="text.secondary">
-            Create, finalize, duplicate, and revise customer quotations.
-          </Typography>
-        </Box>
-        <Stack direction="row" spacing={1}>
+    <PageShell
+      title="Quotations"
+      subtitle="Create, finalize, duplicate, and revise customer quotations."
+      actions={
+        <>
           <Button
             variant="outlined"
             startIcon={<FileDownloadOutlinedIcon />}
@@ -110,25 +114,20 @@ export default function QuotationsPage(): React.JSX.Element {
           >
             New quotation
           </Button>
-        </Stack>
-      </Stack>
-
+        </>
+      }
+    >
       <Paper variant="outlined" sx={{ p: 2 }}>
         <Stack spacing={2}>
           <Typography variant="subtitle1">Filters</Typography>
-          <Stack
-            direction={{ xs: 'column', md: 'row' }}
-            spacing={1.5}
-            useFlexGap
-            sx={{ flexWrap: 'wrap' }}
-          >
+          <Stack direction="row" spacing={1.5} useFlexGap sx={{ flexWrap: 'wrap' }}>
             <TextField
               size="small"
               label="Quotation number"
               placeholder="QT-2026…"
               value={search}
               onChange={(event) => setSearch(event.target.value)}
-              sx={{ minWidth: 180 }}
+              sx={filterFieldSx}
             />
             <TextField
               select
@@ -138,7 +137,7 @@ export default function QuotationsPage(): React.JSX.Element {
               onChange={(event) =>
                 setCustomerId(event.target.value === '' ? '' : Number(event.target.value))
               }
-              sx={{ minWidth: 200 }}
+              sx={filterFieldSx}
             >
               <MenuItem value="">All customers</MenuItem>
               {customers.map((customer) => (
@@ -153,7 +152,7 @@ export default function QuotationsPage(): React.JSX.Element {
               label="Status"
               value={status}
               onChange={(event) => setStatus(event.target.value as QuotationStatus | '')}
-              sx={{ minWidth: 150 }}
+              sx={filterFieldSx}
             >
               <MenuItem value="">All statuses</MenuItem>
               {QUOTATION_STATUSES.map((item) => (
@@ -169,6 +168,7 @@ export default function QuotationsPage(): React.JSX.Element {
               value={dateFrom}
               onChange={(event) => setDateFrom(event.target.value)}
               slotProps={{ inputLabel: { shrink: true } }}
+              sx={filterFieldSx}
             />
             <TextField
               size="small"
@@ -177,6 +177,7 @@ export default function QuotationsPage(): React.JSX.Element {
               value={dateTo}
               onChange={(event) => setDateTo(event.target.value)}
               slotProps={{ inputLabel: { shrink: true } }}
+              sx={filterFieldSx}
             />
             <TextField
               size="small"
@@ -184,7 +185,7 @@ export default function QuotationsPage(): React.JSX.Element {
               label="Min amount"
               value={amountMin}
               onChange={(event) => setAmountMin(event.target.value)}
-              sx={{ width: 130 }}
+              sx={filterFieldSx}
             />
             <TextField
               size="small"
@@ -192,160 +193,164 @@ export default function QuotationsPage(): React.JSX.Element {
               label="Max amount"
               value={amountMax}
               onChange={(event) => setAmountMax(event.target.value)}
-              sx={{ width: 130 }}
+              sx={filterFieldSx}
             />
-            <Button onClick={resetFilters}>Clear</Button>
+            <Button onClick={resetFilters} sx={{ alignSelf: 'center' }}>
+              Clear
+            </Button>
           </Stack>
         </Stack>
       </Paper>
 
       {error && <Alert severity="error">{error}</Alert>}
 
-      <Table size="small">
-        <TableHead>
-          <TableRow>
-            <TableCell>Number</TableCell>
-            <TableCell>Date</TableCell>
-            <TableCell>Customer</TableCell>
-            <TableCell>Template</TableCell>
-            <TableCell>Status</TableCell>
-            <TableCell align="right">Grand total</TableCell>
-            <TableCell align="right">Actions</TableCell>
-          </TableRow>
-        </TableHead>
-        <TableBody>
-          {rows.length === 0 && (
+      <TableContainer sx={{ overflowX: 'auto', width: '100%' }}>
+        <Table size="small" sx={{ minWidth: showSecondaryCols ? 960 : 720 }}>
+          <TableHead>
             <TableRow>
-              <TableCell colSpan={7}>
-                <Typography color="text.secondary">No quotations match these filters.</Typography>
-              </TableCell>
+              <TableCell>Number</TableCell>
+              <TableCell>Date</TableCell>
+              <TableCell>Customer</TableCell>
+              {showSecondaryCols && <TableCell>Template</TableCell>}
+              <TableCell>Status</TableCell>
+              <TableCell align="right">Grand total</TableCell>
+              <TableCell align="right">Actions</TableCell>
             </TableRow>
-          )}
-          {rows.map((row) => (
-            <TableRow key={row.id} hover>
-              <TableCell>
-                <Stack direction="row" spacing={1} sx={{ alignItems: 'center' }}>
-                  <span>{row.quotationNumber}</span>
-                  {row.revisionNumber > 0 && (
-                    <Chip size="small" label={`R${row.revisionNumber}`} />
-                  )}
-                </Stack>
-              </TableCell>
-              <TableCell>{row.date.slice(0, 10)}</TableCell>
-              <TableCell>{row.customerName ?? '—'}</TableCell>
-              <TableCell>{row.templateName ?? '—'}</TableCell>
-              <TableCell>
-                <TextField
-                  select
-                  size="small"
-                  value={row.status}
-                  onChange={(event) => {
-                    void window.api.quotations
-                      .setStatus(row.id, event.target.value as QuotationStatus)
-                      .then(load)
-                      .catch((err: unknown) =>
-                        setError(err instanceof Error ? err.message : 'Status update failed')
-                      )
-                  }}
-                  sx={{ minWidth: 140 }}
-                >
-                  {QUOTATION_STATUSES.map((item) => (
-                    <MenuItem key={item} value={item}>
-                      {item}
-                    </MenuItem>
-                  ))}
-                </TextField>
-              </TableCell>
-              <TableCell align="right">{row.grandTotal.toFixed(2)}</TableCell>
-              <TableCell align="right">
-                <IconButton
-                  aria-label="Edit"
-                  size="small"
-                  onClick={() => navigate(`/quotations/${row.id}`)}
-                >
-                  <EditOutlinedIcon fontSize="small" />
-                </IconButton>
-                <IconButton
-                  aria-label="Preview"
-                  size="small"
-                  onClick={() => navigate(`/quotations/${row.id}/preview`)}
-                >
-                  <VisibilityOutlinedIcon fontSize="small" />
-                </IconButton>
-                <IconButton
-                  aria-label="Export PDF"
-                  size="small"
-                  onClick={() => {
-                    void window.api.documents
-                      .exportPdf(row.id)
-                      .catch((err: unknown) =>
-                        setError(err instanceof Error ? err.message : 'PDF export failed')
-                      )
-                  }}
-                >
-                  <PictureAsPdfIcon fontSize="small" />
-                </IconButton>
-                <IconButton
-                  aria-label="Print"
-                  size="small"
-                  onClick={() => {
-                    void window.api.documents
-                      .print(row.id)
-                      .catch((err: unknown) =>
-                        setError(err instanceof Error ? err.message : 'Print failed')
-                      )
-                  }}
-                >
-                  <PrintIcon fontSize="small" />
-                </IconButton>
-                <IconButton
-                  aria-label="Duplicate"
-                  size="small"
-                  onClick={() => {
-                    void window.api.quotations
-                      .duplicate(row.id)
-                      .then((copy) => navigate(`/quotations/${copy.id}`))
-                      .catch((err: unknown) =>
-                        setError(err instanceof Error ? err.message : 'Duplicate failed')
-                      )
-                  }}
-                >
-                  <ContentCopyIcon fontSize="small" />
-                </IconButton>
-                <IconButton
-                  aria-label="Revise"
-                  size="small"
-                  onClick={() => {
-                    void window.api.quotations
-                      .revise(row.id)
-                      .then((revision) => navigate(`/quotations/${revision.id}`))
-                      .catch((err: unknown) =>
-                        setError(err instanceof Error ? err.message : 'Revise failed')
-                      )
-                  }}
-                >
-                  <HistoryIcon fontSize="small" />
-                </IconButton>
-                <IconButton
-                  aria-label="Delete"
-                  size="small"
-                  onClick={() => {
-                    if (!window.confirm('Delete this quotation?')) return
-                    void window.api.quotations
-                      .remove(row.id)
-                      .then(load)
-                      .catch((err: unknown) =>
-                        setError(err instanceof Error ? err.message : 'Delete failed')
-                      )
-                  }}
-                >
-                  <DeleteOutlinedIcon fontSize="small" />
-                </IconButton>
-              </TableCell>
-            </TableRow>
-          ))}
-        </TableBody>
-      </Table>
-    </Stack>
+          </TableHead>
+          <TableBody>
+            {rows.length === 0 && (
+              <TableRow>
+                <TableCell colSpan={showSecondaryCols ? 7 : 6}>
+                  <Typography color="text.secondary">No quotations match these filters.</Typography>
+                </TableCell>
+              </TableRow>
+            )}
+            {rows.map((row) => (
+              <TableRow key={row.id} hover>
+                <TableCell>
+                  <Stack direction="row" spacing={1} sx={{ alignItems: 'center' }}>
+                    <span>{row.quotationNumber}</span>
+                    {row.revisionNumber > 0 && (
+                      <Chip size="small" label={`R${row.revisionNumber}`} />
+                    )}
+                  </Stack>
+                </TableCell>
+                <TableCell>{row.date.slice(0, 10)}</TableCell>
+                <TableCell>{row.customerName ?? '—'}</TableCell>
+                {showSecondaryCols && <TableCell>{row.templateName ?? '—'}</TableCell>}
+                <TableCell>
+                  <TextField
+                    select
+                    size="small"
+                    value={row.status}
+                    onChange={(event) => {
+                      void window.api.quotations
+                        .setStatus(row.id, event.target.value as QuotationStatus)
+                        .then(load)
+                        .catch((err: unknown) =>
+                          setError(err instanceof Error ? err.message : 'Status update failed')
+                        )
+                    }}
+                    sx={{ minWidth: 120 }}
+                  >
+                    {QUOTATION_STATUSES.map((item) => (
+                      <MenuItem key={item} value={item}>
+                        {item}
+                      </MenuItem>
+                    ))}
+                  </TextField>
+                </TableCell>
+                <TableCell align="right">{row.grandTotal.toFixed(2)}</TableCell>
+                <TableCell align="right" sx={{ whiteSpace: 'nowrap' }}>
+                  <IconButton
+                    aria-label="Edit"
+                    size="small"
+                    onClick={() => navigate(`/quotations/${row.id}`)}
+                  >
+                    <EditOutlinedIcon fontSize="small" />
+                  </IconButton>
+                  <IconButton
+                    aria-label="Preview"
+                    size="small"
+                    onClick={() => navigate(`/quotations/${row.id}/preview`)}
+                  >
+                    <VisibilityOutlinedIcon fontSize="small" />
+                  </IconButton>
+                  <IconButton
+                    aria-label="Export PDF"
+                    size="small"
+                    onClick={() => {
+                      void window.api.documents
+                        .exportPdf(row.id)
+                        .catch((err: unknown) =>
+                          setError(err instanceof Error ? err.message : 'PDF export failed')
+                        )
+                    }}
+                  >
+                    <PictureAsPdfIcon fontSize="small" />
+                  </IconButton>
+                  <IconButton
+                    aria-label="Print"
+                    size="small"
+                    onClick={() => {
+                      void window.api.documents
+                        .print(row.id)
+                        .catch((err: unknown) =>
+                          setError(err instanceof Error ? err.message : 'Print failed')
+                        )
+                    }}
+                  >
+                    <PrintIcon fontSize="small" />
+                  </IconButton>
+                  <IconButton
+                    aria-label="Duplicate"
+                    size="small"
+                    onClick={() => {
+                      void window.api.quotations
+                        .duplicate(row.id)
+                        .then((copy) => navigate(`/quotations/${copy.id}`))
+                        .catch((err: unknown) =>
+                          setError(err instanceof Error ? err.message : 'Duplicate failed')
+                        )
+                    }}
+                  >
+                    <ContentCopyIcon fontSize="small" />
+                  </IconButton>
+                  <IconButton
+                    aria-label="Revise"
+                    size="small"
+                    onClick={() => {
+                      void window.api.quotations
+                        .revise(row.id)
+                        .then((revision) => navigate(`/quotations/${revision.id}`))
+                        .catch((err: unknown) =>
+                          setError(err instanceof Error ? err.message : 'Revise failed')
+                        )
+                    }}
+                  >
+                    <HistoryIcon fontSize="small" />
+                  </IconButton>
+                  <IconButton
+                    aria-label="Delete"
+                    size="small"
+                    onClick={() => {
+                      if (!window.confirm('Delete this quotation?')) return
+                      void window.api.quotations
+                        .remove(row.id)
+                        .then(load)
+                        .catch((err: unknown) =>
+                          setError(err instanceof Error ? err.message : 'Delete failed')
+                        )
+                    }}
+                  >
+                    <DeleteOutlinedIcon fontSize="small" />
+                  </IconButton>
+                </TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
+      </TableContainer>
+    </PageShell>
   )
 }

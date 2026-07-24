@@ -71,7 +71,7 @@ export default function BackupRestorePanel(): React.JSX.Element {
   }
 
   return (
-    <Stack spacing={2} sx={{ maxWidth: 720 }}>
+    <Stack spacing={2} sx={{ width: '100%', maxWidth: 720 }}>
       <Typography variant="h6">Backup & restore</Typography>
       <Typography color="text.secondary">
         Create offline zip backups of the database and assets, or restore from a previous backup.
@@ -80,7 +80,7 @@ export default function BackupRestorePanel(): React.JSX.Element {
       {error && <Alert severity="error">{error}</Alert>}
       {message && <Alert severity="success">{message}</Alert>}
 
-      <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1}>
+      <Stack direction="row" spacing={1} useFlexGap sx={{ flexWrap: 'wrap' }}>
         <Button
           variant="contained"
           startIcon={<BackupOutlinedIcon />}
@@ -103,7 +103,7 @@ export default function BackupRestorePanel(): React.JSX.Element {
       <Typography variant="subtitle1" sx={{ pt: 1 }}>
         CSV export
       </Typography>
-      <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1}>
+      <Stack direction="row" spacing={1} useFlexGap sx={{ flexWrap: 'wrap' }}>
         <Button
           variant="outlined"
           startIcon={<FileDownloadOutlinedIcon />}

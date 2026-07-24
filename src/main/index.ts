@@ -18,6 +18,9 @@ function createWindow(): void {
   const mainWindow = new BrowserWindow({
     width: 1200,
     height: 800,
+    // Floor matches the narrowest layout we support (~700px with hamburger nav).
+    minWidth: 700,
+    minHeight: 560,
     show: false,
     autoHideMenuBar: true,
     icon: logo,

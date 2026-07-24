@@ -4,7 +4,7 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import Alert from '@mui/material/Alert'
 import Box from '@mui/material/Box'
 import Button from '@mui/material/Button'
-import Dialog from '@mui/material/Dialog'
+import ResponsiveDialog from '../components/ResponsiveDialog'
 import DialogActions from '@mui/material/DialogActions'
 import DialogContent from '@mui/material/DialogContent'
 import DialogTitle from '@mui/material/DialogTitle'
@@ -13,6 +13,7 @@ import Stack from '@mui/material/Stack'
 import Table from '@mui/material/Table'
 import TableBody from '@mui/material/TableBody'
 import TableCell from '@mui/material/TableCell'
+import TableContainer from '@mui/material/TableContainer'
 import TableHead from '@mui/material/TableHead'
 import TableRow from '@mui/material/TableRow'
 import TextField from '@mui/material/TextField'
@@ -100,8 +101,12 @@ export default function TermsTemplatesPanel(): React.JSX.Element {
 
   return (
     <Stack spacing={2}>
-      <Stack direction="row" sx={{ justifyContent: 'space-between', alignItems: 'center' }}>
-        <Box>
+      <Stack
+        direction={{ xs: 'column', sm: 'row' }}
+        spacing={1.5}
+        sx={{ justifyContent: 'space-between', alignItems: { sm: 'flex-start' } }}
+      >
+        <Box sx={{ minWidth: 0 }}>
           <Typography variant="h6">Terms & conditions</Typography>
           <Typography color="text.secondary">
             Reusable terms text. Use arrows to set display order.
@@ -114,7 +119,8 @@ export default function TermsTemplatesPanel(): React.JSX.Element {
 
       {error && <Alert severity="error">{error}</Alert>}
 
-      <Table size="small">
+      <TableContainer sx={{ overflowX: 'auto' }}>
+      <Table size="small" sx={{ minWidth: 560 }}>
         <TableHead>
           <TableRow>
             <TableCell width={72}>Order</TableCell>
@@ -168,8 +174,9 @@ export default function TermsTemplatesPanel(): React.JSX.Element {
           ))}
         </TableBody>
       </Table>
+      </TableContainer>
 
-      <Dialog open={dialogOpen} onClose={closeDialog} fullWidth maxWidth="sm">
+      <ResponsiveDialog open={dialogOpen} onClose={closeDialog} fullWidth maxWidth="sm">
         <DialogTitle>{editingId == null ? 'Add template' : 'Edit template'}</DialogTitle>
         <Box component="form" onSubmit={onSubmit}>
           <DialogContent>
@@ -211,7 +218,7 @@ export default function TermsTemplatesPanel(): React.JSX.Element {
             </Button>
           </DialogActions>
         </Box>
-      </Dialog>
+      </ResponsiveDialog>
     </Stack>
   )
 }

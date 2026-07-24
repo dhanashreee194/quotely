@@ -5,7 +5,7 @@ import Alert from '@mui/material/Alert'
 import Box from '@mui/material/Box'
 import Button from '@mui/material/Button'
 import Checkbox from '@mui/material/Checkbox'
-import Dialog from '@mui/material/Dialog'
+import ResponsiveDialog from '../components/ResponsiveDialog'
 import DialogActions from '@mui/material/DialogActions'
 import DialogContent from '@mui/material/DialogContent'
 import DialogTitle from '@mui/material/DialogTitle'
@@ -21,10 +21,12 @@ import Tabs from '@mui/material/Tabs'
 import Table from '@mui/material/Table'
 import TableBody from '@mui/material/TableBody'
 import TableCell from '@mui/material/TableCell'
+import TableContainer from '@mui/material/TableContainer'
 import TableHead from '@mui/material/TableHead'
 import TableRow from '@mui/material/TableRow'
 import TextField from '@mui/material/TextField'
 import Typography from '@mui/material/Typography'
+import PageShell from '../layout/PageShell'
 import AddIcon from '@mui/icons-material/Add'
 import DeleteOutlinedIcon from '@mui/icons-material/DeleteOutlined'
 import EditOutlinedIcon from '@mui/icons-material/EditOutlined'
@@ -221,15 +223,17 @@ export default function SettingsPage(): React.JSX.Element {
   }
 
   return (
-    <Stack spacing={2}>
-      <Box>
-        <Typography variant="h4">Settings</Typography>
-        <Typography color="text.secondary">
-          Company profile, tax rules, backup, and audit history.
-        </Typography>
-      </Box>
-
-      <Tabs value={tab} onChange={(_event, value: SettingsTab) => setTab(value)}>
+    <PageShell
+      title="Settings"
+      subtitle="Company profile, tax rules, backup, and audit history."
+    >
+      <Tabs
+        value={tab}
+        onChange={(_event, value: SettingsTab) => setTab(value)}
+        variant="scrollable"
+        scrollButtons="auto"
+        allowScrollButtonsMobile
+      >
         <Tab label="Company" value="company" />
         <Tab label="Tax & charges" value="charges" />
         <Tab label="Backup & Restore" value="backup" />
@@ -242,7 +246,7 @@ export default function SettingsPage(): React.JSX.Element {
       {tab === 'audit' && <AuditPanel />}
 
       {tab === 'company' && (
-        <Box component="form" onSubmit={onSaveCompany} sx={{ maxWidth: 720 }}>
+        <Box component="form" onSubmit={onSaveCompany} sx={{ width: '100%', maxWidth: 720 }}>
           <Stack spacing={2}>
             <Controller
               name="name"
@@ -410,56 +414,62 @@ export default function SettingsPage(): React.JSX.Element {
 
       {tab === 'charges' && (
         <Stack spacing={2}>
-          <Stack direction="row" sx={{ justifyContent: 'flex-end' }}>
+          <Stack direction="row" sx={{ justifyContent: 'flex-end', flexWrap: 'wrap', gap: 1 }}>
             <Button variant="contained" startIcon={<AddIcon />} onClick={openChargeCreate}>
               Add rule
             </Button>
           </Stack>
 
-          <Table size="small">
-            <TableHead>
-              <TableRow>
-                <TableCell>Name</TableCell>
-                <TableCell>Type</TableCell>
-                <TableCell align="right">Value</TableCell>
-                <TableCell>Applies to subtotal</TableCell>
-                <TableCell align="right">Actions</TableCell>
-              </TableRow>
-            </TableHead>
-            <TableBody>
-              {chargeRules.length === 0 && (
+          <TableContainer sx={{ overflowX: 'auto' }}>
+            <Table size="small" sx={{ minWidth: 520 }}>
+              <TableHead>
                 <TableRow>
-                  <TableCell colSpan={5}>
-                    <Typography color="text.secondary">No tax or charge rules yet.</Typography>
-                  </TableCell>
+                  <TableCell>Name</TableCell>
+                  <TableCell>Type</TableCell>
+                  <TableCell align="right">Value</TableCell>
+                  <TableCell>Applies to subtotal</TableCell>
+                  <TableCell align="right">Actions</TableCell>
                 </TableRow>
-              )}
-              {chargeRules.map((rule) => (
-                <TableRow key={rule.id} hover>
-                  <TableCell>{rule.name}</TableCell>
-                  <TableCell>{rule.type}</TableCell>
-                  <TableCell align="right">{rule.value}</TableCell>
-                  <TableCell>{rule.appliesToSubtotal ? 'Yes' : 'No'}</TableCell>
-                  <TableCell align="right">
-                    <IconButton aria-label="Edit" size="small" onClick={() => openChargeEdit(rule.id)}>
-                      <EditOutlinedIcon fontSize="small" />
-                    </IconButton>
-                    <IconButton
-                      aria-label="Delete"
-                      size="small"
-                      onClick={() => void handleDeleteCharge(rule.id)}
-                    >
-                      <DeleteOutlinedIcon fontSize="small" />
-                    </IconButton>
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
+              </TableHead>
+              <TableBody>
+                {chargeRules.length === 0 && (
+                  <TableRow>
+                    <TableCell colSpan={5}>
+                      <Typography color="text.secondary">No tax or charge rules yet.</Typography>
+                    </TableCell>
+                  </TableRow>
+                )}
+                {chargeRules.map((rule) => (
+                  <TableRow key={rule.id} hover>
+                    <TableCell>{rule.name}</TableCell>
+                    <TableCell>{rule.type}</TableCell>
+                    <TableCell align="right">{rule.value}</TableCell>
+                    <TableCell>{rule.appliesToSubtotal ? 'Yes' : 'No'}</TableCell>
+                    <TableCell align="right" sx={{ whiteSpace: 'nowrap' }}>
+                      <IconButton
+                        aria-label="Edit"
+                        size="small"
+                        onClick={() => openChargeEdit(rule.id)}
+                      >
+                        <EditOutlinedIcon fontSize="small" />
+                      </IconButton>
+                      <IconButton
+                        aria-label="Delete"
+                        size="small"
+                        onClick={() => void handleDeleteCharge(rule.id)}
+                      >
+                        <DeleteOutlinedIcon fontSize="small" />
+                      </IconButton>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </TableContainer>
         </Stack>
       )}
 
-      <Dialog open={chargeDialogOpen} onClose={closeChargeDialog} fullWidth maxWidth="xs">
+      <ResponsiveDialog open={chargeDialogOpen} onClose={closeChargeDialog} fullWidth maxWidth="xs">
         <DialogTitle>{editingChargeId == null ? 'Add rule' : 'Edit rule'}</DialogTitle>
         <Box component="form" onSubmit={onSaveCharge}>
           <DialogContent>
@@ -532,7 +542,7 @@ export default function SettingsPage(): React.JSX.Element {
             </Button>
           </DialogActions>
         </Box>
-      </Dialog>
-    </Stack>
+      </ResponsiveDialog>
+    </PageShell>
   )
 }

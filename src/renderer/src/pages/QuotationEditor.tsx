@@ -1,7 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import Alert from '@mui/material/Alert'
-import Box from '@mui/material/Box'
 import Button from '@mui/material/Button'
 import Divider from '@mui/material/Divider'
 import IconButton from '@mui/material/IconButton'
@@ -11,6 +10,7 @@ import Stack from '@mui/material/Stack'
 import Table from '@mui/material/Table'
 import TableBody from '@mui/material/TableBody'
 import TableCell from '@mui/material/TableCell'
+import TableContainer from '@mui/material/TableContainer'
 import TableHead from '@mui/material/TableHead'
 import TableRow from '@mui/material/TableRow'
 import TextField from '@mui/material/TextField'
@@ -34,6 +34,7 @@ import type {
   QuotationTemplateBundle
 } from '../../../shared/types'
 import DynamicForm from '../components/DynamicForm'
+import PageShell from '../layout/PageShell'
 
 type EditorItem = QuotationItemInput & { key: string }
 type EditorCharge = QuotationChargeInput & { key: string }
@@ -329,21 +330,17 @@ export default function QuotationEditorPage(): React.JSX.Element {
   }
 
   return (
-    <Stack spacing={2}>
-      <Stack direction="row" sx={{ justifyContent: 'space-between', alignItems: 'center' }}>
-        <Box>
-          <Typography variant="h4">
-            {editingId == null ? 'New quotation' : existing?.quotationNumber || 'Edit quotation'}
-          </Typography>
-          <Typography color="text.secondary">
-            {editingId == null
-              ? `Next number preview: ${peekNumber || '—'}`
-              : `Status: ${existing?.status ?? '—'}${
-                  existing && existing.revisionNumber > 0 ? ` · R${existing.revisionNumber}` : ''
-                }`}
-          </Typography>
-        </Box>
-        <Stack direction="row" spacing={1} sx={{ flexWrap: 'wrap', justifyContent: 'flex-end' }}>
+    <PageShell
+      title={editingId == null ? 'New quotation' : existing?.quotationNumber || 'Edit quotation'}
+      subtitle={
+        editingId == null
+          ? `Next number preview: ${peekNumber || '—'}`
+          : `Status: ${existing?.status ?? '—'}${
+              existing && existing.revisionNumber > 0 ? ` · R${existing.revisionNumber}` : ''
+            }`
+      }
+      actions={
+        <>
           <Button variant="outlined" onClick={() => navigate('/quotations')}>
             Back
           </Button>
@@ -392,9 +389,9 @@ export default function QuotationEditorPage(): React.JSX.Element {
           <Button variant="contained" disabled={saving} onClick={() => void handleFinalize()}>
             Finalize
           </Button>
-        </Stack>
-      </Stack>
-
+        </>
+      }
+    >
       {error && <Alert severity="error">{error}</Alert>}
       {info && (
         <Alert severity="success" onClose={() => setInfo('')}>
@@ -402,10 +399,10 @@ export default function QuotationEditorPage(): React.JSX.Element {
         </Alert>
       )}
 
-      <Paper variant="outlined" sx={{ p: 2 }}>
+      <Paper variant="outlined" sx={{ p: { xs: 1.5, sm: 2 }, minWidth: 0 }}>
         <Stack spacing={2}>
           <Typography variant="h6">Header</Typography>
-          <Stack direction={{ xs: 'column', md: 'row' }} spacing={2}>
+          <Stack direction={{ xs: 'column', md: 'row' }} spacing={2} useFlexGap sx={{ flexWrap: 'wrap' }}>
             <TextField
               select
               label="Template"
@@ -413,6 +410,7 @@ export default function QuotationEditorPage(): React.JSX.Element {
               onChange={(event) => setTemplateId(Number(event.target.value))}
               fullWidth
               required
+              sx={{ flex: '1 1 200px', minWidth: 0 }}
             >
               {templates.map((template) => (
                 <MenuItem key={template.id} value={template.id}>
@@ -427,6 +425,7 @@ export default function QuotationEditorPage(): React.JSX.Element {
               onChange={(event) => setCustomerId(Number(event.target.value))}
               fullWidth
               required
+              sx={{ flex: '1 1 200px', minWidth: 0 }}
             >
               {customers.map((customer) => (
                 <MenuItem key={customer.id} value={customer.id}>
@@ -441,12 +440,14 @@ export default function QuotationEditorPage(): React.JSX.Element {
               onChange={(event) => setDate(event.target.value)}
               slotProps={{ inputLabel: { shrink: true } }}
               fullWidth
+              sx={{ flex: '1 1 160px', minWidth: 0 }}
             />
             <TextField
               label="Currency"
               value={currency}
               onChange={(event) => setCurrency(event.target.value)}
               fullWidth
+              sx={{ flex: '1 1 120px', minWidth: 0 }}
             />
           </Stack>
 
@@ -468,9 +469,13 @@ export default function QuotationEditorPage(): React.JSX.Element {
         </Stack>
       </Paper>
 
-      <Paper variant="outlined" sx={{ p: 2 }}>
+      <Paper variant="outlined" sx={{ p: { xs: 1.5, sm: 2 }, minWidth: 0 }}>
         <Stack spacing={2}>
-          <Stack direction="row" sx={{ justifyContent: 'space-between', alignItems: 'center' }}>
+          <Stack
+            direction={{ xs: 'column', sm: 'row' }}
+            spacing={1}
+            sx={{ justifyContent: 'space-between', alignItems: { sm: 'center' } }}
+          >
             <Typography variant="h6">Line items</Typography>
             <Button
               size="small"
@@ -494,7 +499,8 @@ export default function QuotationEditorPage(): React.JSX.Element {
             </Button>
           </Stack>
 
-          <Table size="small">
+          <TableContainer sx={{ overflowX: 'auto', width: '100%' }}>
+          <Table size="small" sx={{ minWidth: 720 }}>
             <TableHead>
               <TableRow>
                 <TableCell>Product</TableCell>
@@ -643,12 +649,17 @@ export default function QuotationEditorPage(): React.JSX.Element {
               ))}
             </TableBody>
           </Table>
+          </TableContainer>
         </Stack>
       </Paper>
 
-      <Paper variant="outlined" sx={{ p: 2 }}>
+      <Paper variant="outlined" sx={{ p: { xs: 1.5, sm: 2 }, minWidth: 0 }}>
         <Stack spacing={2}>
-          <Stack direction="row" sx={{ justifyContent: 'space-between', alignItems: 'center' }}>
+          <Stack
+            direction={{ xs: 'column', sm: 'row' }}
+            spacing={1}
+            sx={{ justifyContent: 'space-between', alignItems: { sm: 'center' } }}
+          >
             <Typography variant="h6">Charges</Typography>
             <Button
               size="small"
@@ -669,7 +680,8 @@ export default function QuotationEditorPage(): React.JSX.Element {
               Add charge
             </Button>
           </Stack>
-          <Table size="small">
+          <TableContainer sx={{ overflowX: 'auto', width: '100%' }}>
+          <Table size="small" sx={{ minWidth: 480 }}>
             <TableHead>
               <TableRow>
                 <TableCell>Name</TableCell>
@@ -713,7 +725,7 @@ export default function QuotationEditorPage(): React.JSX.Element {
                           )
                         )
                       }
-                      sx={{ minWidth: 130 }}
+                      sx={{ minWidth: 120 }}
                     >
                       <MenuItem value="percentage">Percentage</MenuItem>
                       <MenuItem value="fixed">Fixed</MenuItem>
@@ -733,7 +745,7 @@ export default function QuotationEditorPage(): React.JSX.Element {
                           )
                         )
                       }
-                      sx={{ width: 110 }}
+                      sx={{ width: 100 }}
                     />
                   </TableCell>
                   <TableCell align="right">
@@ -753,14 +765,16 @@ export default function QuotationEditorPage(): React.JSX.Element {
               ))}
             </TableBody>
           </Table>
+          </TableContainer>
 
-          <Stack spacing={1} sx={{ maxWidth: 360, ml: 'auto' }}>
+          <Stack spacing={1} sx={{ width: '100%', maxWidth: { sm: 360 }, ml: { sm: 'auto' } }}>
             <TextField
               size="small"
               type="number"
               label="Document discount"
               value={discountTotal}
               onChange={(event) => setDiscountTotal(Number(event.target.value))}
+              fullWidth
             />
             <Stack direction="row" sx={{ justifyContent: 'space-between' }}>
               <Typography color="text.secondary">Subtotal</Typography>
@@ -787,7 +801,7 @@ export default function QuotationEditorPage(): React.JSX.Element {
         </Stack>
       </Paper>
 
-      <Paper variant="outlined" sx={{ p: 2 }}>
+      <Paper variant="outlined" sx={{ p: { xs: 1.5, sm: 2 }, minWidth: 0 }}>
         <Stack spacing={2}>
           <Typography variant="h6">Notes</Typography>
           <TextField
@@ -808,6 +822,6 @@ export default function QuotationEditorPage(): React.JSX.Element {
           />
         </Stack>
       </Paper>
-    </Stack>
+    </PageShell>
   )
 }

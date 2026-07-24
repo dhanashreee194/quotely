@@ -4,7 +4,6 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import Alert from '@mui/material/Alert'
 import Box from '@mui/material/Box'
 import Button from '@mui/material/Button'
-import Dialog from '@mui/material/Dialog'
 import DialogActions from '@mui/material/DialogActions'
 import DialogContent from '@mui/material/DialogContent'
 import DialogTitle from '@mui/material/DialogTitle'
@@ -13,14 +12,19 @@ import Stack from '@mui/material/Stack'
 import Table from '@mui/material/Table'
 import TableBody from '@mui/material/TableBody'
 import TableCell from '@mui/material/TableCell'
+import TableContainer from '@mui/material/TableContainer'
 import TableHead from '@mui/material/TableHead'
 import TableRow from '@mui/material/TableRow'
 import TextField from '@mui/material/TextField'
 import Typography from '@mui/material/Typography'
+import useMediaQuery from '@mui/material/useMediaQuery'
+import { useTheme } from '@mui/material/styles'
 import AddIcon from '@mui/icons-material/Add'
 import DeleteOutlinedIcon from '@mui/icons-material/DeleteOutlined'
 import EditOutlinedIcon from '@mui/icons-material/EditOutlined'
 import type { Customer } from '../../../shared/types'
+import ResponsiveDialog from '../components/ResponsiveDialog'
+import PageShell from '../layout/PageShell'
 import { customerFormSchema, type CustomerFormValues } from '../lib/validation'
 import { useCustomersStore } from '../stores/customersStore'
 
@@ -37,6 +41,8 @@ const emptyValues: CustomerFormValues = {
 }
 
 export default function CustomersPage(): React.JSX.Element {
+  const theme = useTheme()
+  const showSecondaryCols = useMediaQuery(theme.breakpoints.up('sm'))
   const { search, setSearch, dialogOpen, editingId, openCreate, openEdit, closeDialog } =
     useCustomersStore()
   const [rows, setRows] = useState<Customer[]>([])
@@ -116,66 +122,71 @@ export default function CustomersPage(): React.JSX.Element {
   }
 
   return (
-    <Stack spacing={2}>
-      <Stack direction="row" sx={{ justifyContent: 'space-between', alignItems: 'center' }}>
-        <Box>
-          <Typography variant="h4">Customers</Typography>
-          <Typography color="text.secondary">Maintain your customer directory.</Typography>
-        </Box>
+    <PageShell
+      title="Customers"
+      subtitle="Maintain your customer directory."
+      actions={
         <Button variant="contained" startIcon={<AddIcon />} onClick={openCreate}>
           Add customer
         </Button>
-      </Stack>
-
+      }
+    >
       <TextField
         size="small"
         label="Search"
         placeholder="Name, company, or email"
         value={search}
         onChange={(event) => setSearch(event.target.value)}
-        sx={{ maxWidth: 360 }}
+        fullWidth
+        sx={{ maxWidth: { sm: 360 } }}
       />
 
       {error && <Alert severity="error">{error}</Alert>}
 
-      <Table size="small">
-        <TableHead>
-          <TableRow>
-            <TableCell>Name</TableCell>
-            <TableCell>Company</TableCell>
-            <TableCell>Email</TableCell>
-            <TableCell>Phone</TableCell>
-            <TableCell align="right">Actions</TableCell>
-          </TableRow>
-        </TableHead>
-        <TableBody>
-          {!loading && rows.length === 0 && (
+      <TableContainer sx={{ overflowX: 'auto' }}>
+        <Table size="small" sx={{ minWidth: 480 }}>
+          <TableHead>
             <TableRow>
-              <TableCell colSpan={5}>
-                <Typography color="text.secondary">No customers found.</Typography>
-              </TableCell>
+              <TableCell>Name</TableCell>
+              {showSecondaryCols && <TableCell>Company</TableCell>}
+              <TableCell>Email</TableCell>
+              {showSecondaryCols && <TableCell>Phone</TableCell>}
+              <TableCell align="right">Actions</TableCell>
             </TableRow>
-          )}
-          {rows.map((row) => (
-            <TableRow key={row.id} hover>
-              <TableCell>{row.name}</TableCell>
-              <TableCell>{row.companyName ?? '—'}</TableCell>
-              <TableCell>{row.email ?? '—'}</TableCell>
-              <TableCell>{row.phone ?? '—'}</TableCell>
-              <TableCell align="right">
-                <IconButton aria-label="Edit" onClick={() => openEdit(row.id)} size="small">
-                  <EditOutlinedIcon fontSize="small" />
-                </IconButton>
-                <IconButton aria-label="Delete" onClick={() => void handleDelete(row.id)} size="small">
-                  <DeleteOutlinedIcon fontSize="small" />
-                </IconButton>
-              </TableCell>
-            </TableRow>
-          ))}
-        </TableBody>
-      </Table>
+          </TableHead>
+          <TableBody>
+            {!loading && rows.length === 0 && (
+              <TableRow>
+                <TableCell colSpan={showSecondaryCols ? 5 : 3}>
+                  <Typography color="text.secondary">No customers found.</Typography>
+                </TableCell>
+              </TableRow>
+            )}
+            {rows.map((row) => (
+              <TableRow key={row.id} hover>
+                <TableCell>{row.name}</TableCell>
+                {showSecondaryCols && <TableCell>{row.companyName ?? '—'}</TableCell>}
+                <TableCell>{row.email ?? '—'}</TableCell>
+                {showSecondaryCols && <TableCell>{row.phone ?? '—'}</TableCell>}
+                <TableCell align="right" sx={{ whiteSpace: 'nowrap' }}>
+                  <IconButton aria-label="Edit" onClick={() => openEdit(row.id)} size="small">
+                    <EditOutlinedIcon fontSize="small" />
+                  </IconButton>
+                  <IconButton
+                    aria-label="Delete"
+                    onClick={() => void handleDelete(row.id)}
+                    size="small"
+                  >
+                    <DeleteOutlinedIcon fontSize="small" />
+                  </IconButton>
+                </TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
+      </TableContainer>
 
-      <Dialog open={dialogOpen} onClose={closeDialog} fullWidth maxWidth="sm">
+      <ResponsiveDialog open={dialogOpen} onClose={closeDialog} maxWidth="sm">
         <DialogTitle>{editingId == null ? 'Add customer' : 'Edit customer'}</DialogTitle>
         <Box component="form" onSubmit={onSubmit}>
           <DialogContent>
@@ -230,7 +241,7 @@ export default function CustomersPage(): React.JSX.Element {
             </Button>
           </DialogActions>
         </Box>
-      </Dialog>
-    </Stack>
+      </ResponsiveDialog>
+    </PageShell>
   )
 }
