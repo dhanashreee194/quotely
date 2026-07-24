@@ -70,6 +70,7 @@ import {
 import { listAuditActions, listAuditLog } from './audit'
 import { createBackup, pickBackupFile, restoreBackup } from './backup'
 import { exportCsv } from './csvExport'
+import { getDashboardSummary } from './dashboard'
 import {
   exportQuotationPdf,
   getQuotationDocumentModel,
@@ -249,4 +250,6 @@ export function registerIpcHandlers(): void {
   ipcMain.handle(IpcChannels.auditActions, () => listAuditActions())
 
   ipcMain.handle(IpcChannels.exportCsv, (_event, kind: CsvExportKind) => exportCsv(kind))
+
+  ipcMain.handle(IpcChannels.dashboardGetSummary, () => getDashboardSummary())
 }

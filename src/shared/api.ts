@@ -1,3 +1,4 @@
+import type { DashboardSummary } from './dashboard'
 import type {
   AuditLogEntry,
   AuditLogFilters,
@@ -147,6 +148,10 @@ export type ExportApi = {
   csv: (kind: CsvExportKind) => Promise<string | null>
 }
 
+export type DashboardApi = {
+  getSummary: () => Promise<DashboardSummary>
+}
+
 export type NumberingApi = {
   get: () => Promise<NumberingConfig>
   update: (patch: Partial<NumberingConfig>) => Promise<NumberingConfig>
@@ -175,6 +180,7 @@ export type QuotelyApi = {
   backup: BackupApi
   audit: AuditApi
   export: ExportApi
+  dashboard: DashboardApi
 }
 
 export type * from './types'
@@ -182,3 +188,4 @@ export type * from './metadata'
 export type * from './quotation'
 export type * from './document'
 export type * from './dataManagement'
+export type * from './dashboard'

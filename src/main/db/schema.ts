@@ -176,7 +176,9 @@ export const quotations = sqliteTable(
     index('quotation_date_idx').on(table.date),
     index('quotation_customer_idx').on(table.customerId),
     index('quotation_status_idx').on(table.status),
-    index('quotation_grand_total_idx').on(table.grandTotal)
+    index('quotation_grand_total_idx').on(table.grandTotal),
+    index('quotation_created_at_idx').on(table.createdAt),
+    index('quotation_updated_at_idx').on(table.updatedAt)
   ]
 )
 

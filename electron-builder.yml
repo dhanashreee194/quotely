@@ -29,6 +29,8 @@ nsis:
   artifactName: QuotelySetup-${version}.${ext}
   shortcutName: ${productName}
   uninstallDisplayName: ${productName}
+  # Assisted installer required when allowToChangeInstallationDirectory is true.
+  oneClick: false
   allowToChangeInstallationDirectory: true
   createDesktopShortcut: always
   createStartMenuShortcut: true

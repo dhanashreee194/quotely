@@ -105,6 +105,9 @@ const api: QuotelyApi = {
   },
   export: {
     csv: (kind) => ipcRenderer.invoke(IpcChannels.exportCsv, kind)
+  },
+  dashboard: {
+    getSummary: () => ipcRenderer.invoke(IpcChannels.dashboardGetSummary)
   }
 }
 

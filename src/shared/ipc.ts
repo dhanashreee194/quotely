@@ -78,7 +78,9 @@ export const IpcChannels = {
   auditList: 'audit:list',
   auditActions: 'audit:actions',
 
-  exportCsv: 'export:csv'
+  exportCsv: 'export:csv',
+
+  dashboardGetSummary: 'dashboard:getSummary'
 } as const
 
 export type IpcChannel = (typeof IpcChannels)[keyof typeof IpcChannels]
