@@ -85,6 +85,14 @@ const api: QuotelyApi = {
     get: () => ipcRenderer.invoke(IpcChannels.numberingGet),
     update: (patch) => ipcRenderer.invoke(IpcChannels.numberingUpdate, patch),
     peekNext: () => ipcRenderer.invoke(IpcChannels.numberingPeek)
+  },
+  documents: {
+    getModel: (quotationId) => ipcRenderer.invoke(IpcChannels.documentsGetModel, quotationId),
+    exportPdf: (quotationId) => ipcRenderer.invoke(IpcChannels.documentsExportPdf, quotationId),
+    print: (quotationId) => ipcRenderer.invoke(IpcChannels.documentsPrint, quotationId),
+    notifyReady: () => {
+      ipcRenderer.send(IpcChannels.documentsReady)
+    }
   }
 }
 

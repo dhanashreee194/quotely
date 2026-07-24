@@ -63,6 +63,11 @@ import {
   updateNumberingConfig
 } from './numbering'
 import {
+  exportQuotationPdf,
+  getQuotationDocumentModel,
+  printQuotation
+} from './documents'
+import {
   createQuotation,
   duplicateQuotation,
   finalizeQuotation,
@@ -214,4 +219,14 @@ export function registerIpcHandlers(): void {
     updateNumberingConfig(patch)
   )
   ipcMain.handle(IpcChannels.numberingPeek, () => peekNextQuotationNumber())
+
+  ipcMain.handle(IpcChannels.documentsGetModel, (_event, quotationId: number) =>
+    getQuotationDocumentModel(quotationId)
+  )
+  ipcMain.handle(IpcChannels.documentsExportPdf, (_event, quotationId: number) =>
+    exportQuotationPdf(quotationId)
+  )
+  ipcMain.handle(IpcChannels.documentsPrint, (_event, quotationId: number) =>
+    printQuotation(quotationId)
+  )
 }

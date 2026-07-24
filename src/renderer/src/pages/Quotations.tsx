@@ -19,6 +19,9 @@ import ContentCopyIcon from '@mui/icons-material/ContentCopy'
 import DeleteOutlinedIcon from '@mui/icons-material/DeleteOutlined'
 import EditOutlinedIcon from '@mui/icons-material/EditOutlined'
 import HistoryIcon from '@mui/icons-material/History'
+import PictureAsPdfIcon from '@mui/icons-material/PictureAsPdf'
+import PrintIcon from '@mui/icons-material/Print'
+import VisibilityOutlinedIcon from '@mui/icons-material/VisibilityOutlined'
 import { QUOTATION_STATUSES } from '../../../shared/quotation'
 import type { QuotationListItem, QuotationStatus } from '../../../shared/types'
 import { useQuotationsStore } from '../stores/quotationsStore'
@@ -134,6 +137,39 @@ export default function QuotationsPage(): React.JSX.Element {
                   onClick={() => navigate(`/quotations/${row.id}`)}
                 >
                   <EditOutlinedIcon fontSize="small" />
+                </IconButton>
+                <IconButton
+                  aria-label="Preview"
+                  size="small"
+                  onClick={() => navigate(`/quotations/${row.id}/preview`)}
+                >
+                  <VisibilityOutlinedIcon fontSize="small" />
+                </IconButton>
+                <IconButton
+                  aria-label="Export PDF"
+                  size="small"
+                  onClick={() => {
+                    void window.api.documents
+                      .exportPdf(row.id)
+                      .catch((err: unknown) =>
+                        setError(err instanceof Error ? err.message : 'PDF export failed')
+                      )
+                  }}
+                >
+                  <PictureAsPdfIcon fontSize="small" />
+                </IconButton>
+                <IconButton
+                  aria-label="Print"
+                  size="small"
+                  onClick={() => {
+                    void window.api.documents
+                      .print(row.id)
+                      .catch((err: unknown) =>
+                        setError(err instanceof Error ? err.message : 'Print failed')
+                      )
+                  }}
+                >
+                  <PrintIcon fontSize="small" />
                 </IconButton>
                 <IconButton
                   aria-label="Duplicate"

@@ -17,6 +17,9 @@ import TextField from '@mui/material/TextField'
 import Typography from '@mui/material/Typography'
 import AddIcon from '@mui/icons-material/Add'
 import DeleteOutlinedIcon from '@mui/icons-material/DeleteOutlined'
+import PictureAsPdfIcon from '@mui/icons-material/PictureAsPdf'
+import PrintIcon from '@mui/icons-material/Print'
+import VisibilityOutlinedIcon from '@mui/icons-material/VisibilityOutlined'
 import { calculateQuotationTotals } from '../../../shared/calc'
 import type {
   ChargeRule,
@@ -340,10 +343,49 @@ export default function QuotationEditorPage(): React.JSX.Element {
                 }`}
           </Typography>
         </Box>
-        <Stack direction="row" spacing={1}>
+        <Stack direction="row" spacing={1} sx={{ flexWrap: 'wrap', justifyContent: 'flex-end' }}>
           <Button variant="outlined" onClick={() => navigate('/quotations')}>
             Back
           </Button>
+          {editingId != null && (
+            <>
+              <Button
+                variant="outlined"
+                startIcon={<VisibilityOutlinedIcon />}
+                onClick={() => navigate(`/quotations/${editingId}/preview`)}
+              >
+                Preview
+              </Button>
+              <Button
+                variant="outlined"
+                startIcon={<PictureAsPdfIcon />}
+                disabled={saving}
+                onClick={() => {
+                  void window.api.documents
+                    .exportPdf(editingId)
+                    .catch((err: unknown) =>
+                      setError(err instanceof Error ? err.message : 'PDF export failed')
+                    )
+                }}
+              >
+                Export PDF
+              </Button>
+              <Button
+                variant="outlined"
+                startIcon={<PrintIcon />}
+                disabled={saving}
+                onClick={() => {
+                  void window.api.documents
+                    .print(editingId)
+                    .catch((err: unknown) =>
+                      setError(err instanceof Error ? err.message : 'Print failed')
+                    )
+                }}
+              >
+                Print
+              </Button>
+            </>
+          )}
           <Button variant="outlined" disabled={saving} onClick={() => void handleSaveDraft()}>
             Save draft
           </Button>

@@ -64,7 +64,12 @@ export const IpcChannels = {
   quotationsRevise: 'quotations:revise',
   numberingGet: 'numbering:get',
   numberingUpdate: 'numbering:update',
-  numberingPeek: 'numbering:peek'
+  numberingPeek: 'numbering:peek',
+
+  documentsGetModel: 'documents:getModel',
+  documentsExportPdf: 'documents:exportPdf',
+  documentsPrint: 'documents:print',
+  documentsReady: 'documents:ready'
 } as const
 
 export type IpcChannel = (typeof IpcChannels)[keyof typeof IpcChannels]

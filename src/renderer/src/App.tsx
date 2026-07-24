@@ -5,6 +5,7 @@ import AppLayout from './layout/AppLayout'
 import DashboardPage from './pages/Dashboard'
 import QuotationsPage from './pages/Quotations'
 import QuotationEditorPage from './pages/QuotationEditor'
+import QuotationPreviewPage from './pages/QuotationPreview'
 import CustomersPage from './pages/Customers'
 import ProductsPage from './pages/Products'
 import TemplatesPage from './pages/Templates'
@@ -16,6 +17,7 @@ export default function App(): React.JSX.Element {
       <CssBaseline />
       <HashRouter>
         <Routes>
+          <Route path="quotations/:id/preview" element={<QuotationPreviewPage />} />
           <Route element={<AppLayout />}>
             <Route index element={<DashboardPage />} />
             <Route path="quotations" element={<QuotationsPage />} />

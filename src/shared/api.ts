@@ -1,3 +1,4 @@
+import type { QuotationDocumentModel } from './document'
 import type { NumberingConfig, QuotationStatus } from './quotation'
 import type {
   AssetKind,
@@ -129,6 +130,13 @@ export type NumberingApi = {
   peekNext: () => Promise<string>
 }
 
+export type DocumentsApi = {
+  getModel: (quotationId: number) => Promise<QuotationDocumentModel | null>
+  exportPdf: (quotationId: number) => Promise<string | null>
+  print: (quotationId: number) => Promise<boolean>
+  notifyReady: () => void
+}
+
 export type QuotelyApi = {
   settings: SettingsApi
   company: CompanyApi
@@ -140,8 +148,10 @@ export type QuotelyApi = {
   quotationTemplates: QuotationTemplatesApi
   quotations: QuotationsApi
   numbering: NumberingApi
+  documents: DocumentsApi
 }
 
 export type * from './types'
 export type * from './metadata'
 export type * from './quotation'
+export type * from './document'
