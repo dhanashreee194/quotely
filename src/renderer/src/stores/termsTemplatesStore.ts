@@ -1,6 +1,6 @@
 import { create } from 'zustand'
 
-type TemplatesUiState = {
+type TermsTemplatesUiState = {
   dialogOpen: boolean
   editingId: number | null
   openCreate: () => void
@@ -8,7 +8,7 @@ type TemplatesUiState = {
   closeDialog: () => void
 }
 
-export const useTemplatesStore = create<TemplatesUiState>((set) => ({
+export const useTermsTemplatesStore = create<TermsTemplatesUiState>((set) => ({
   dialogOpen: false,
   editingId: null,
   openCreate: () => set({ dialogOpen: true, editingId: null }),

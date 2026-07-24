@@ -4,11 +4,20 @@ import type {
   ChargeRuleInput,
   CompanyProfile,
   CompanyProfileInput,
+  CustomFieldDefinitionInput,
+  CustomFieldDefinitionWithOptions,
   Customer,
   CustomerInput,
+  ItemColumnDefinition,
+  ItemColumnDefinitionInput,
   Product,
   ProductInput,
+  QuotationTemplate,
+  QuotationTemplateBundle,
+  QuotationTemplateInput,
   ReorderDirection,
+  TemplateSection,
+  TemplateSectionInput,
   TermsTemplate,
   TermsTemplateInput
 } from './types'
@@ -59,6 +68,45 @@ export type AssetsApi = {
   getDataUrl: (relativePath: string) => Promise<string | null>
 }
 
+export type QuotationTemplatesApi = {
+  list: () => Promise<QuotationTemplate[]>
+  get: (id: number) => Promise<QuotationTemplateBundle | null>
+  create: (data: QuotationTemplateInput) => Promise<QuotationTemplate>
+  update: (id: number, data: QuotationTemplateInput) => Promise<QuotationTemplate>
+  remove: (id: number) => Promise<void>
+  setDefault: (id: number) => Promise<QuotationTemplate>
+  sections: {
+    create: (data: TemplateSectionInput) => Promise<TemplateSection>
+    update: (
+      id: number,
+      data: Pick<TemplateSectionInput, 'name' | 'type' | 'enabled'>
+    ) => Promise<TemplateSection>
+    remove: (id: number) => Promise<void>
+    reorder: (id: number, direction: ReorderDirection) => Promise<TemplateSection[]>
+  }
+  fields: {
+    create: (data: CustomFieldDefinitionInput) => Promise<CustomFieldDefinitionWithOptions>
+    update: (
+      id: number,
+      data: Omit<CustomFieldDefinitionInput, 'templateId' | 'sectionId'>
+    ) => Promise<CustomFieldDefinitionWithOptions>
+    remove: (id: number) => Promise<void>
+    reorder: (
+      id: number,
+      direction: ReorderDirection
+    ) => Promise<CustomFieldDefinitionWithOptions[]>
+  }
+  itemColumns: {
+    create: (data: ItemColumnDefinitionInput) => Promise<ItemColumnDefinition>
+    update: (
+      id: number,
+      data: Omit<ItemColumnDefinitionInput, 'templateId'>
+    ) => Promise<ItemColumnDefinition>
+    remove: (id: number) => Promise<void>
+    reorder: (id: number, direction: ReorderDirection) => Promise<ItemColumnDefinition[]>
+  }
+}
+
 export type QuotelyApi = {
   settings: SettingsApi
   company: CompanyApi
@@ -67,6 +115,8 @@ export type QuotelyApi = {
   termsTemplates: TermsTemplatesApi
   chargeRules: ChargeRulesApi
   assets: AssetsApi
+  quotationTemplates: QuotationTemplatesApi
 }
 
 export type * from './types'
+export type * from './metadata'

@@ -42,6 +42,33 @@ const api: QuotelyApi = {
   assets: {
     pickImage: (kind) => ipcRenderer.invoke(IpcChannels.assetsPickImage, kind),
     getDataUrl: (relativePath) => ipcRenderer.invoke(IpcChannels.assetsGetDataUrl, relativePath)
+  },
+  quotationTemplates: {
+    list: () => ipcRenderer.invoke(IpcChannels.quotationTemplatesList),
+    get: (id) => ipcRenderer.invoke(IpcChannels.quotationTemplatesGet, id),
+    create: (data) => ipcRenderer.invoke(IpcChannels.quotationTemplatesCreate, data),
+    update: (id, data) => ipcRenderer.invoke(IpcChannels.quotationTemplatesUpdate, id, data),
+    remove: (id) => ipcRenderer.invoke(IpcChannels.quotationTemplatesRemove, id),
+    setDefault: (id) => ipcRenderer.invoke(IpcChannels.quotationTemplatesSetDefault, id),
+    sections: {
+      create: (data) => ipcRenderer.invoke(IpcChannels.templateSectionsCreate, data),
+      update: (id, data) => ipcRenderer.invoke(IpcChannels.templateSectionsUpdate, id, data),
+      remove: (id) => ipcRenderer.invoke(IpcChannels.templateSectionsRemove, id),
+      reorder: (id, direction) =>
+        ipcRenderer.invoke(IpcChannels.templateSectionsReorder, id, direction)
+    },
+    fields: {
+      create: (data) => ipcRenderer.invoke(IpcChannels.customFieldsCreate, data),
+      update: (id, data) => ipcRenderer.invoke(IpcChannels.customFieldsUpdate, id, data),
+      remove: (id) => ipcRenderer.invoke(IpcChannels.customFieldsRemove, id),
+      reorder: (id, direction) => ipcRenderer.invoke(IpcChannels.customFieldsReorder, id, direction)
+    },
+    itemColumns: {
+      create: (data) => ipcRenderer.invoke(IpcChannels.itemColumnsCreate, data),
+      update: (id, data) => ipcRenderer.invoke(IpcChannels.itemColumnsUpdate, id, data),
+      remove: (id) => ipcRenderer.invoke(IpcChannels.itemColumnsRemove, id),
+      reorder: (id, direction) => ipcRenderer.invoke(IpcChannels.itemColumnsReorder, id, direction)
+    }
   }
 }
 

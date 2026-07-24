@@ -4,9 +4,13 @@ import type {
   AssetKind,
   ChargeRuleInput,
   CompanyProfileInput,
+  CustomFieldDefinitionInput,
   CustomerInput,
+  ItemColumnDefinitionInput,
   ProductInput,
+  QuotationTemplateInput,
   ReorderDirection,
+  TemplateSectionInput,
   TermsTemplateInput
 } from '../../shared/types'
 import { getAssetDataUrl, pickImage } from './assets'
@@ -31,6 +35,26 @@ import {
   removeProduct,
   updateProduct
 } from './products'
+import {
+  createCustomField,
+  createItemColumn,
+  createQuotationTemplate,
+  createTemplateSection,
+  getQuotationTemplateBundle,
+  listQuotationTemplates,
+  removeCustomField,
+  removeItemColumn,
+  removeQuotationTemplate,
+  removeTemplateSection,
+  reorderCustomField,
+  reorderItemColumn,
+  reorderTemplateSection,
+  setDefaultQuotationTemplate,
+  updateCustomField,
+  updateItemColumn,
+  updateQuotationTemplate,
+  updateTemplateSection
+} from './quotationTemplates'
 import { getSetting, setSetting } from './settings'
 import {
   createTermsTemplate,
@@ -91,5 +115,65 @@ export function registerIpcHandlers(): void {
   ipcMain.handle(IpcChannels.assetsPickImage, (_event, kind: AssetKind) => pickImage(kind))
   ipcMain.handle(IpcChannels.assetsGetDataUrl, (_event, relativePath: string) =>
     getAssetDataUrl(relativePath)
+  )
+
+  ipcMain.handle(IpcChannels.quotationTemplatesList, () => listQuotationTemplates())
+  ipcMain.handle(IpcChannels.quotationTemplatesGet, (_event, id: number) =>
+    getQuotationTemplateBundle(id)
+  )
+  ipcMain.handle(IpcChannels.quotationTemplatesCreate, (_event, data: QuotationTemplateInput) =>
+    createQuotationTemplate(data)
+  )
+  ipcMain.handle(
+    IpcChannels.quotationTemplatesUpdate,
+    (_event, id: number, data: QuotationTemplateInput) => updateQuotationTemplate(id, data)
+  )
+  ipcMain.handle(IpcChannels.quotationTemplatesRemove, (_event, id: number) =>
+    removeQuotationTemplate(id)
+  )
+  ipcMain.handle(IpcChannels.quotationTemplatesSetDefault, (_event, id: number) =>
+    setDefaultQuotationTemplate(id)
+  )
+
+  ipcMain.handle(IpcChannels.templateSectionsCreate, (_event, data: TemplateSectionInput) =>
+    createTemplateSection(data)
+  )
+  ipcMain.handle(
+    IpcChannels.templateSectionsUpdate,
+    (_event, id: number, data: Pick<TemplateSectionInput, 'name' | 'type' | 'enabled'>) =>
+      updateTemplateSection(id, data)
+  )
+  ipcMain.handle(IpcChannels.templateSectionsRemove, (_event, id: number) =>
+    removeTemplateSection(id)
+  )
+  ipcMain.handle(
+    IpcChannels.templateSectionsReorder,
+    (_event, id: number, direction: ReorderDirection) => reorderTemplateSection(id, direction)
+  )
+
+  ipcMain.handle(IpcChannels.customFieldsCreate, (_event, data: CustomFieldDefinitionInput) =>
+    createCustomField(data)
+  )
+  ipcMain.handle(
+    IpcChannels.customFieldsUpdate,
+    (_event, id: number, data: Omit<CustomFieldDefinitionInput, 'templateId' | 'sectionId'>) =>
+      updateCustomField(id, data)
+  )
+  ipcMain.handle(IpcChannels.customFieldsRemove, (_event, id: number) => removeCustomField(id))
+  ipcMain.handle(IpcChannels.customFieldsReorder, (_event, id: number, direction: ReorderDirection) =>
+    reorderCustomField(id, direction)
+  )
+
+  ipcMain.handle(IpcChannels.itemColumnsCreate, (_event, data: ItemColumnDefinitionInput) =>
+    createItemColumn(data)
+  )
+  ipcMain.handle(
+    IpcChannels.itemColumnsUpdate,
+    (_event, id: number, data: Omit<ItemColumnDefinitionInput, 'templateId'>) =>
+      updateItemColumn(id, data)
+  )
+  ipcMain.handle(IpcChannels.itemColumnsRemove, (_event, id: number) => removeItemColumn(id))
+  ipcMain.handle(IpcChannels.itemColumnsReorder, (_event, id: number, direction: ReorderDirection) =>
+    reorderItemColumn(id, direction)
   )
 }

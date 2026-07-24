@@ -29,7 +29,29 @@ export const IpcChannels = {
   chargeRulesRemove: 'chargeRules:remove',
 
   assetsPickImage: 'assets:pickImage',
-  assetsGetDataUrl: 'assets:getDataUrl'
+  assetsGetDataUrl: 'assets:getDataUrl',
+
+  quotationTemplatesList: 'quotationTemplates:list',
+  quotationTemplatesGet: 'quotationTemplates:get',
+  quotationTemplatesCreate: 'quotationTemplates:create',
+  quotationTemplatesUpdate: 'quotationTemplates:update',
+  quotationTemplatesRemove: 'quotationTemplates:remove',
+  quotationTemplatesSetDefault: 'quotationTemplates:setDefault',
+
+  templateSectionsCreate: 'templateSections:create',
+  templateSectionsUpdate: 'templateSections:update',
+  templateSectionsRemove: 'templateSections:remove',
+  templateSectionsReorder: 'templateSections:reorder',
+
+  customFieldsCreate: 'customFields:create',
+  customFieldsUpdate: 'customFields:update',
+  customFieldsRemove: 'customFields:remove',
+  customFieldsReorder: 'customFields:reorder',
+
+  itemColumnsCreate: 'itemColumns:create',
+  itemColumnsUpdate: 'itemColumns:update',
+  itemColumnsRemove: 'itemColumns:remove',
+  itemColumnsReorder: 'itemColumns:reorder'
 } as const
 
 export type IpcChannel = (typeof IpcChannels)[keyof typeof IpcChannels]
