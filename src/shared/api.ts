@@ -1,3 +1,11 @@
+import type {
+  AuditLogEntry,
+  AuditLogFilters,
+  BackupCreateResult,
+  BackupRestoreResult,
+  CsvExportKind,
+  QuotationListFilters
+} from './dataManagement'
 import type { QuotationDocumentModel } from './document'
 import type { NumberingConfig, QuotationStatus } from './quotation'
 import type {
@@ -113,7 +121,7 @@ export type QuotationTemplatesApi = {
 }
 
 export type QuotationsApi = {
-  list: (search?: string) => Promise<QuotationListItem[]>
+  list: (filters?: QuotationListFilters | string) => Promise<QuotationListItem[]>
   get: (id: number) => Promise<QuotationBundle | null>
   create: (data: QuotationInput) => Promise<QuotationBundle>
   update: (id: number, data: QuotationInput) => Promise<QuotationBundle>
@@ -122,6 +130,21 @@ export type QuotationsApi = {
   setStatus: (id: number, status: QuotationStatus) => Promise<QuotationBundle>
   duplicate: (id: number) => Promise<QuotationBundle>
   revise: (id: number) => Promise<QuotationBundle>
+}
+
+export type BackupApi = {
+  create: () => Promise<BackupCreateResult | null>
+  pick: () => Promise<string | null>
+  restore: (zipPath: string) => Promise<BackupRestoreResult>
+}
+
+export type AuditApi = {
+  list: (filters?: AuditLogFilters) => Promise<AuditLogEntry[]>
+  actions: () => Promise<string[]>
+}
+
+export type ExportApi = {
+  csv: (kind: CsvExportKind) => Promise<string | null>
 }
 
 export type NumberingApi = {
@@ -149,9 +172,13 @@ export type QuotelyApi = {
   quotations: QuotationsApi
   numbering: NumberingApi
   documents: DocumentsApi
+  backup: BackupApi
+  audit: AuditApi
+  export: ExportApi
 }
 
 export type * from './types'
 export type * from './metadata'
 export type * from './quotation'
 export type * from './document'
+export type * from './dataManagement'

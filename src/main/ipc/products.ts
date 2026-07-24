@@ -2,6 +2,7 @@ import { and, eq, like, or, sql } from 'drizzle-orm'
 import type { Product, ProductInput } from '../../shared/types'
 import { getDatabase } from '../db'
 import { products } from '../db/schema'
+import { recordAudit } from './audit'
 
 function now(): string {
   return new Date().toISOString()
@@ -69,6 +70,7 @@ export async function createProduct(data: ProductInput): Promise<Product> {
   if (!row) {
     throw new Error('Failed to create product')
   }
+  recordAudit({ action: 'create', entityType: 'product', entityId: row.id })
   return row
 }
 
@@ -93,10 +95,12 @@ export async function updateProduct(id: number, data: ProductInput): Promise<Pro
   if (!row) {
     throw new Error('Product not found')
   }
+  recordAudit({ action: 'edit', entityType: 'product', entityId: row.id })
   return row
 }
 
 export async function removeProduct(id: number): Promise<void> {
   const db = getDatabase()
   db.delete(products).where(and(eq(products.id, id))).run()
+  recordAudit({ action: 'delete', entityType: 'product', entityId: id })
 }

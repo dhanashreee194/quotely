@@ -1,6 +1,6 @@
 import { create } from 'zustand'
 
-type SettingsTab = 'company' | 'charges'
+export type SettingsTab = 'company' | 'charges' | 'backup' | 'audit'
 
 type SettingsUiState = {
   tab: SettingsTab

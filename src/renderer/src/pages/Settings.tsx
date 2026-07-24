@@ -35,7 +35,9 @@ import {
   type ChargeRuleFormValues,
   type CompanyFormValues
 } from '../lib/validation'
-import { useSettingsStore } from '../stores/settingsStore'
+import { useSettingsStore, type SettingsTab } from '../stores/settingsStore'
+import AuditPanel from './AuditPanel'
+import BackupRestorePanel from './BackupRestorePanel'
 
 const emptyCompany: CompanyFormValues = {
   name: '',
@@ -223,16 +225,21 @@ export default function SettingsPage(): React.JSX.Element {
       <Box>
         <Typography variant="h4">Settings</Typography>
         <Typography color="text.secondary">
-          Company profile, tax rules, and charge rules.
+          Company profile, tax rules, backup, and audit history.
         </Typography>
       </Box>
 
-      <Tabs value={tab} onChange={(_event, value: 'company' | 'charges') => setTab(value)}>
+      <Tabs value={tab} onChange={(_event, value: SettingsTab) => setTab(value)}>
         <Tab label="Company" value="company" />
         <Tab label="Tax & charges" value="charges" />
+        <Tab label="Backup & Restore" value="backup" />
+        <Tab label="Audit" value="audit" />
       </Tabs>
 
       {error && <Alert severity="error">{error}</Alert>}
+
+      {tab === 'backup' && <BackupRestorePanel />}
+      {tab === 'audit' && <AuditPanel />}
 
       {tab === 'company' && (
         <Box component="form" onSubmit={onSaveCompany} sx={{ maxWidth: 720 }}>

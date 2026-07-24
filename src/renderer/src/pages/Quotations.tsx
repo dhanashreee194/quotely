@@ -6,6 +6,7 @@ import Button from '@mui/material/Button'
 import Chip from '@mui/material/Chip'
 import IconButton from '@mui/material/IconButton'
 import MenuItem from '@mui/material/MenuItem'
+import Paper from '@mui/material/Paper'
 import Stack from '@mui/material/Stack'
 import Table from '@mui/material/Table'
 import TableBody from '@mui/material/TableBody'
@@ -18,28 +19,62 @@ import AddIcon from '@mui/icons-material/Add'
 import ContentCopyIcon from '@mui/icons-material/ContentCopy'
 import DeleteOutlinedIcon from '@mui/icons-material/DeleteOutlined'
 import EditOutlinedIcon from '@mui/icons-material/EditOutlined'
+import FileDownloadOutlinedIcon from '@mui/icons-material/FileDownloadOutlined'
 import HistoryIcon from '@mui/icons-material/History'
 import PictureAsPdfIcon from '@mui/icons-material/PictureAsPdf'
 import PrintIcon from '@mui/icons-material/Print'
 import VisibilityOutlinedIcon from '@mui/icons-material/VisibilityOutlined'
 import { QUOTATION_STATUSES } from '../../../shared/quotation'
-import type { QuotationListItem, QuotationStatus } from '../../../shared/types'
+import type { Customer, QuotationListItem, QuotationStatus } from '../../../shared/types'
 import { useQuotationsStore } from '../stores/quotationsStore'
+
+const SEARCH_DEBOUNCE_MS = 300
 
 export default function QuotationsPage(): React.JSX.Element {
   const navigate = useNavigate()
-  const { search, setSearch } = useQuotationsStore()
+  const {
+    search,
+    customerId,
+    status,
+    dateFrom,
+    dateTo,
+    amountMin,
+    amountMax,
+    setSearch,
+    setCustomerId,
+    setStatus,
+    setDateFrom,
+    setDateTo,
+    setAmountMin,
+    setAmountMax,
+    resetFilters,
+    toFilters
+  } = useQuotationsStore()
+
   const [rows, setRows] = useState<QuotationListItem[]>([])
+  const [customers, setCustomers] = useState<Customer[]>([])
   const [error, setError] = useState('')
+  const [debouncedSearch, setDebouncedSearch] = useState(search)
+
+  useEffect(() => {
+    const timer = window.setTimeout(() => setDebouncedSearch(search), SEARCH_DEBOUNCE_MS)
+    return () => window.clearTimeout(timer)
+  }, [search])
+
+  useEffect(() => {
+    void window.api.customers.list().then(setCustomers).catch(() => setCustomers([]))
+  }, [])
 
   const load = useCallback(async (): Promise<void> => {
     try {
-      setRows(await window.api.quotations.list(search))
+      const filters = toFilters()
+      filters.search = debouncedSearch.trim() || undefined
+      setRows(await window.api.quotations.list(filters))
       setError('')
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to load quotations')
     }
-  }, [search])
+  }, [debouncedSearch, toFilters, customerId, status, dateFrom, dateTo, amountMin, amountMax])
 
   useEffect(() => {
     void load()
@@ -54,23 +89,115 @@ export default function QuotationsPage(): React.JSX.Element {
             Create, finalize, duplicate, and revise customer quotations.
           </Typography>
         </Box>
-        <Button
-          variant="contained"
-          startIcon={<AddIcon />}
-          onClick={() => navigate('/quotations/new')}
-        >
-          New quotation
-        </Button>
+        <Stack direction="row" spacing={1}>
+          <Button
+            variant="outlined"
+            startIcon={<FileDownloadOutlinedIcon />}
+            onClick={() => {
+              void window.api.export
+                .csv('quotations')
+                .catch((err: unknown) =>
+                  setError(err instanceof Error ? err.message : 'CSV export failed')
+                )
+            }}
+          >
+            Export CSV
+          </Button>
+          <Button
+            variant="contained"
+            startIcon={<AddIcon />}
+            onClick={() => navigate('/quotations/new')}
+          >
+            New quotation
+          </Button>
+        </Stack>
       </Stack>
 
-      <TextField
-        size="small"
-        label="Search"
-        placeholder="Number, customer, or status"
-        value={search}
-        onChange={(event) => setSearch(event.target.value)}
-        sx={{ maxWidth: 360 }}
-      />
+      <Paper variant="outlined" sx={{ p: 2 }}>
+        <Stack spacing={2}>
+          <Typography variant="subtitle1">Filters</Typography>
+          <Stack
+            direction={{ xs: 'column', md: 'row' }}
+            spacing={1.5}
+            useFlexGap
+            sx={{ flexWrap: 'wrap' }}
+          >
+            <TextField
+              size="small"
+              label="Quotation number"
+              placeholder="QT-2026…"
+              value={search}
+              onChange={(event) => setSearch(event.target.value)}
+              sx={{ minWidth: 180 }}
+            />
+            <TextField
+              select
+              size="small"
+              label="Customer"
+              value={customerId === '' ? '' : String(customerId)}
+              onChange={(event) =>
+                setCustomerId(event.target.value === '' ? '' : Number(event.target.value))
+              }
+              sx={{ minWidth: 200 }}
+            >
+              <MenuItem value="">All customers</MenuItem>
+              {customers.map((customer) => (
+                <MenuItem key={customer.id} value={String(customer.id)}>
+                  {customer.name}
+                </MenuItem>
+              ))}
+            </TextField>
+            <TextField
+              select
+              size="small"
+              label="Status"
+              value={status}
+              onChange={(event) => setStatus(event.target.value as QuotationStatus | '')}
+              sx={{ minWidth: 150 }}
+            >
+              <MenuItem value="">All statuses</MenuItem>
+              {QUOTATION_STATUSES.map((item) => (
+                <MenuItem key={item} value={item}>
+                  {item}
+                </MenuItem>
+              ))}
+            </TextField>
+            <TextField
+              size="small"
+              type="date"
+              label="From date"
+              value={dateFrom}
+              onChange={(event) => setDateFrom(event.target.value)}
+              slotProps={{ inputLabel: { shrink: true } }}
+            />
+            <TextField
+              size="small"
+              type="date"
+              label="To date"
+              value={dateTo}
+              onChange={(event) => setDateTo(event.target.value)}
+              slotProps={{ inputLabel: { shrink: true } }}
+            />
+            <TextField
+              size="small"
+              type="number"
+              label="Min amount"
+              value={amountMin}
+              onChange={(event) => setAmountMin(event.target.value)}
+              sx={{ width: 130 }}
+            />
+            <TextField
+              size="small"
+              type="number"
+              label="Max amount"
+              value={amountMax}
+              onChange={(event) => setAmountMax(event.target.value)}
+              sx={{ width: 130 }}
+            />
+            <Button onClick={resetFilters}>Clear</Button>
+          </Stack>
+        </Stack>
+      </Paper>
 
       {error && <Alert severity="error">{error}</Alert>}
 
@@ -90,7 +217,7 @@ export default function QuotationsPage(): React.JSX.Element {
           {rows.length === 0 && (
             <TableRow>
               <TableCell colSpan={7}>
-                <Typography color="text.secondary">No quotations yet.</Typography>
+                <Typography color="text.secondary">No quotations match these filters.</Typography>
               </TableCell>
             </TableRow>
           )}
@@ -122,9 +249,9 @@ export default function QuotationsPage(): React.JSX.Element {
                   }}
                   sx={{ minWidth: 140 }}
                 >
-                  {QUOTATION_STATUSES.map((status) => (
-                    <MenuItem key={status} value={status}>
-                      {status}
+                  {QUOTATION_STATUSES.map((item) => (
+                    <MenuItem key={item} value={item}>
+                      {item}
                     </MenuItem>
                   ))}
                 </TextField>

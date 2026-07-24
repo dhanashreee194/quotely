@@ -1,5 +1,6 @@
-import { asc, desc, eq, like, or, sql } from 'drizzle-orm'
+import { and, asc, desc, eq, gte, like, lte, or, sql, type SQL } from 'drizzle-orm'
 import { calculateQuotationTotals } from '../../shared/calc'
+import type { QuotationListFilters } from '../../shared/dataManagement'
 import { isReservedQuotationFieldKey } from '../../shared/metadata'
 import type { QuotationStatus } from '../../shared/quotation'
 import type {
@@ -20,6 +21,7 @@ import {
   quotationTemplates,
   quotations
 } from '../db/schema'
+import { recordAudit } from './audit'
 import { allocateQuotationNumber } from './numbering'
 
 function now(): string {
@@ -239,40 +241,52 @@ async function insertQuotationWithNumber(
   throw new Error('Failed to allocate a unique quotation number')
 }
 
-export async function listQuotations(search?: string): Promise<QuotationListItem[]> {
+export async function listQuotations(
+  filters: QuotationListFilters | string = {}
+): Promise<QuotationListItem[]> {
   const db = getDatabase()
-  const query = search?.trim()
+  // Backward-compatible: older callers may pass a search string.
+  const normalized: QuotationListFilters =
+    typeof filters === 'string' ? { search: filters } : (filters ?? {})
 
-  const rows = query
-    ? db
-        .select({
-          quotation: quotations,
-          customerName: customers.name,
-          templateName: quotationTemplates.name
-        })
-        .from(quotations)
-        .leftJoin(customers, eq(quotations.customerId, customers.id))
-        .leftJoin(quotationTemplates, eq(quotations.templateId, quotationTemplates.id))
-        .where(
-          or(
-            like(quotations.quotationNumber, `%${query}%`),
-            like(customers.name, `%${query}%`),
-            like(quotations.status, `%${query}%`)
-          )
-        )
-        .orderBy(desc(quotations.updatedAt))
-        .all()
-    : db
-        .select({
-          quotation: quotations,
-          customerName: customers.name,
-          templateName: quotationTemplates.name
-        })
-        .from(quotations)
-        .leftJoin(customers, eq(quotations.customerId, customers.id))
-        .leftJoin(quotationTemplates, eq(quotations.templateId, quotationTemplates.id))
-        .orderBy(desc(quotations.updatedAt))
-        .all()
+  const conditions: SQL[] = []
+  const numberQuery = normalized.search?.trim()
+  if (numberQuery) {
+    conditions.push(like(quotations.quotationNumber, `%${numberQuery}%`))
+  }
+  if (normalized.customerId != null && Number.isFinite(normalized.customerId)) {
+    conditions.push(eq(quotations.customerId, normalized.customerId))
+  }
+  if (normalized.status) {
+    conditions.push(eq(quotations.status, normalized.status))
+  }
+  if (normalized.dateFrom?.trim()) {
+    conditions.push(gte(quotations.date, normalized.dateFrom.trim()))
+  }
+  if (normalized.dateTo?.trim()) {
+    conditions.push(lte(quotations.date, normalized.dateTo.trim()))
+  }
+  if (normalized.amountMin != null && Number.isFinite(normalized.amountMin)) {
+    conditions.push(gte(quotations.grandTotal, normalized.amountMin))
+  }
+  if (normalized.amountMax != null && Number.isFinite(normalized.amountMax)) {
+    conditions.push(lte(quotations.grandTotal, normalized.amountMax))
+  }
+
+  const base = db
+    .select({
+      quotation: quotations,
+      customerName: customers.name,
+      templateName: quotationTemplates.name
+    })
+    .from(quotations)
+    .leftJoin(customers, eq(quotations.customerId, customers.id))
+    .leftJoin(quotationTemplates, eq(quotations.templateId, quotationTemplates.id))
+
+  const rows =
+    conditions.length > 0
+      ? base.where(and(...conditions)).orderBy(desc(quotations.updatedAt)).all()
+      : base.orderBy(desc(quotations.updatedAt)).all()
 
   return rows.map((row) => ({
     ...row.quotation,
@@ -291,6 +305,12 @@ export async function createQuotation(data: QuotationInput): Promise<QuotationBu
   })
   const bundle = loadBundle(id)
   if (!bundle) throw new Error('Failed to create quotation')
+  recordAudit({
+    action: 'create',
+    entityType: 'quotation',
+    entityId: bundle.id,
+    user: bundle.createdBy
+  })
   return bundle
 }
 
@@ -305,13 +325,16 @@ export async function updateQuotation(id: number, data: QuotationInput): Promise
   assertCustomValues(customValues)
 
   const totals = computeTotals(items, charges, data.discountTotal ?? 0)
+  const nextStatus = data.status ?? existing.status
+  const templateChanged = data.templateId !== existing.templateId
+  const statusChanged = nextStatus !== existing.status
 
   db.update(quotations)
     .set({
       date: data.date,
       customerId: data.customerId,
       templateId: data.templateId,
-      status: data.status ?? existing.status,
+      status: nextStatus,
       currency: data.currency ?? existing.currency,
       subtotal: totals.subtotal,
       discountTotal: totals.discountTotal,
@@ -328,6 +351,29 @@ export async function updateQuotation(id: number, data: QuotationInput): Promise
 
   const bundle = loadBundle(id)
   if (!bundle) throw new Error('Quotation not found after update')
+
+  recordAudit({
+    action: 'edit',
+    entityType: 'quotation',
+    entityId: bundle.id,
+    user: bundle.createdBy
+  })
+  if (templateChanged) {
+    recordAudit({
+      action: 'template_change',
+      entityType: 'quotation',
+      entityId: bundle.id,
+      user: bundle.createdBy
+    })
+  }
+  if (statusChanged) {
+    recordAudit({
+      action: nextStatus === 'Finalized' ? 'finalize' : 'status_change',
+      entityType: 'quotation',
+      entityId: `${bundle.id}:${nextStatus}`,
+      user: bundle.createdBy
+    })
+  }
   return bundle
 }
 
@@ -343,6 +389,12 @@ export async function setQuotationStatus(id: number, status: QuotationStatus): P
 
   const bundle = loadBundle(id)
   if (!bundle) throw new Error('Quotation not found')
+  recordAudit({
+    action: status === 'Finalized' ? 'finalize' : 'status_change',
+    entityType: 'quotation',
+    entityId: `${bundle.id}:${status}`,
+    user: bundle.createdBy
+  })
   return bundle
 }
 
@@ -352,7 +404,15 @@ export async function finalizeQuotation(id: number): Promise<QuotationBundle> {
 
 export async function removeQuotation(id: number): Promise<void> {
   const db = getDatabase()
+  const existing = db.select().from(quotations).where(eq(quotations.id, id)).get()
   db.delete(quotations).where(eq(quotations.id, id)).run()
+  if (existing) {
+    recordAudit({
+      action: 'delete',
+      entityType: 'quotation',
+      entityId: existing.quotationNumber
+    })
+  }
 }
 
 function bundleToInput(bundle: QuotationBundle, overrides?: Partial<QuotationInput>): QuotationInput {
@@ -399,6 +459,11 @@ export async function duplicateQuotation(id: number): Promise<QuotationBundle> {
 
   const bundle = loadBundle(newId)
   if (!bundle) throw new Error('Failed to duplicate quotation')
+  recordAudit({
+    action: 'duplicate',
+    entityType: 'quotation',
+    entityId: `${id}->${bundle.id}`
+  })
   return bundle
 }
 
@@ -430,5 +495,10 @@ export async function reviseQuotation(id: number): Promise<QuotationBundle> {
 
   const bundle = loadBundle(newId)
   if (!bundle) throw new Error('Failed to revise quotation')
+  recordAudit({
+    action: 'revise',
+    entityType: 'quotation',
+    entityId: `${id}->${bundle.id}`
+  })
   return bundle
 }

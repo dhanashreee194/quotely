@@ -19,6 +19,7 @@ import type {
   TemplateSectionWithFields
 } from '../../shared/types'
 import { getDatabase } from '../db'
+import { recordAudit } from './audit'
 import {
   customFieldDefinitions,
   customFieldOptions,
@@ -239,6 +240,7 @@ export async function createQuotationTemplate(
     .where(eq(quotationTemplates.id, templateId))
     .get()
   if (!row) throw new Error('Failed to create template')
+  recordAudit({ action: 'create', entityType: 'template', entityId: row.id })
   return row
 }
 
@@ -262,6 +264,7 @@ export async function updateQuotationTemplate(
 
   const row = db.select().from(quotationTemplates).where(eq(quotationTemplates.id, id)).get()
   if (!row) throw new Error('Template not found')
+  recordAudit({ action: 'template_change', entityType: 'template', entityId: row.id })
   return row
 }
 
@@ -271,6 +274,7 @@ export async function removeQuotationTemplate(id: number): Promise<void> {
   if (!template) return
 
   db.delete(quotationTemplates).where(eq(quotationTemplates.id, id)).run()
+  recordAudit({ action: 'delete', entityType: 'template', entityId: id })
 
   // If we removed the default, promote another template when any remain.
   if (template.isDefault) {
@@ -299,6 +303,7 @@ export async function setDefaultQuotationTemplate(id: number): Promise<Quotation
 
   const row = db.select().from(quotationTemplates).where(eq(quotationTemplates.id, id)).get()
   if (!row) throw new Error('Template not found')
+  recordAudit({ action: 'template_change', entityType: 'template', entityId: row.id })
   return row
 }
 

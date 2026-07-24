@@ -219,6 +219,22 @@ export const quotationCharges = sqliteTable('quotation_charge', {
   amount: real('amount').notNull().default(0)
 })
 
+export const auditLog = sqliteTable(
+  'audit_log',
+  {
+    id: integer('id').primaryKey({ autoIncrement: true }),
+    datetime: text('datetime').notNull(),
+    user: text('user'),
+    action: text('action').notNull(),
+    entityType: text('entity_type').notNull(),
+    entityId: text('entity_id')
+  },
+  (table) => [
+    index('audit_log_datetime_idx').on(table.datetime),
+    index('audit_log_action_idx').on(table.action)
+  ]
+)
+
 export type Setting = typeof settings.$inferSelect
 export type CompanyProfile = typeof companyProfile.$inferSelect
 export type Customer = typeof customers.$inferSelect
@@ -234,3 +250,4 @@ export type QuotationRow = typeof quotations.$inferSelect
 export type QuotationCustomValueRow = typeof quotationCustomValues.$inferSelect
 export type QuotationItemRow = typeof quotationItems.$inferSelect
 export type QuotationChargeRow = typeof quotationCharges.$inferSelect
+export type AuditLogRow = typeof auditLog.$inferSelect

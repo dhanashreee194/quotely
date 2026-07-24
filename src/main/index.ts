@@ -2,7 +2,7 @@ import { app, shell, BrowserWindow, nativeImage } from 'electron'
 import { join } from 'path'
 import { electronApp, optimizer, is } from '@electron-toolkit/utils'
 import logo from '../../resources/logo.png?asset'
-import { ensureAssetsDir, ensureDefaultCompanyLogo } from './assets'
+import { ensureAssetsDir, ensureCompanyLogoBranding } from './assets'
 import { closeDatabase, initDatabase } from './db'
 import { registerIpcHandlers } from './ipc'
 
@@ -46,7 +46,7 @@ app.whenReady().then(() => {
 
   ensureAssetsDir()
   initDatabase()
-  ensureDefaultCompanyLogo()
+  ensureCompanyLogoBranding()
   registerIpcHandlers()
 
   app.on('browser-window-created', (_, window) => {

@@ -69,7 +69,16 @@ export const IpcChannels = {
   documentsGetModel: 'documents:getModel',
   documentsExportPdf: 'documents:exportPdf',
   documentsPrint: 'documents:print',
-  documentsReady: 'documents:ready'
+  documentsReady: 'documents:ready',
+
+  backupCreate: 'backup:create',
+  backupPick: 'backup:pick',
+  backupRestore: 'backup:restore',
+
+  auditList: 'audit:list',
+  auditActions: 'audit:actions',
+
+  exportCsv: 'export:csv'
 } as const
 
 export type IpcChannel = (typeof IpcChannels)[keyof typeof IpcChannels]

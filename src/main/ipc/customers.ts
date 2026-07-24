@@ -2,6 +2,7 @@ import { and, eq, like, or, sql } from 'drizzle-orm'
 import type { Customer, CustomerInput } from '../../shared/types'
 import { getDatabase } from '../db'
 import { customers } from '../db/schema'
+import { recordAudit } from './audit'
 
 function now(): string {
   return new Date().toISOString()
@@ -69,6 +70,7 @@ export async function createCustomer(data: CustomerInput): Promise<Customer> {
   if (!row) {
     throw new Error('Failed to create customer')
   }
+  recordAudit({ action: 'create', entityType: 'customer', entityId: row.id })
   return row
 }
 
@@ -94,10 +96,12 @@ export async function updateCustomer(id: number, data: CustomerInput): Promise<C
   if (!row) {
     throw new Error('Customer not found')
   }
+  recordAudit({ action: 'edit', entityType: 'customer', entityId: row.id })
   return row
 }
 
 export async function removeCustomer(id: number): Promise<void> {
   const db = getDatabase()
   db.delete(customers).where(and(eq(customers.id, id))).run()
+  recordAudit({ action: 'delete', entityType: 'customer', entityId: id })
 }

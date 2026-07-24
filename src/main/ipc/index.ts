@@ -1,4 +1,9 @@
 import { ipcMain } from 'electron'
+import type {
+  AuditLogFilters,
+  CsvExportKind,
+  QuotationListFilters
+} from '../../shared/dataManagement'
 import { IpcChannels } from '../../shared/ipc'
 import type { NumberingConfig, QuotationStatus } from '../../shared/quotation'
 import type {
@@ -62,6 +67,9 @@ import {
   peekNextQuotationNumber,
   updateNumberingConfig
 } from './numbering'
+import { listAuditActions, listAuditLog } from './audit'
+import { createBackup, pickBackupFile, restoreBackup } from './backup'
+import { exportCsv } from './csvExport'
 import {
   exportQuotationPdf,
   getQuotationDocumentModel,
@@ -200,7 +208,10 @@ export function registerIpcHandlers(): void {
     reorderItemColumn(id, direction)
   )
 
-  ipcMain.handle(IpcChannels.quotationsList, (_event, search?: string) => listQuotations(search))
+  ipcMain.handle(
+    IpcChannels.quotationsList,
+    (_event, filters?: QuotationListFilters | string) => listQuotations(filters)
+  )
   ipcMain.handle(IpcChannels.quotationsGet, (_event, id: number) => getQuotation(id))
   ipcMain.handle(IpcChannels.quotationsCreate, (_event, data: QuotationInput) => createQuotation(data))
   ipcMain.handle(IpcChannels.quotationsUpdate, (_event, id: number, data: QuotationInput) =>
@@ -229,4 +240,13 @@ export function registerIpcHandlers(): void {
   ipcMain.handle(IpcChannels.documentsPrint, (_event, quotationId: number) =>
     printQuotation(quotationId)
   )
+
+  ipcMain.handle(IpcChannels.backupCreate, () => createBackup())
+  ipcMain.handle(IpcChannels.backupPick, () => pickBackupFile())
+  ipcMain.handle(IpcChannels.backupRestore, (_event, zipPath: string) => restoreBackup(zipPath))
+
+  ipcMain.handle(IpcChannels.auditList, (_event, filters?: AuditLogFilters) => listAuditLog(filters))
+  ipcMain.handle(IpcChannels.auditActions, () => listAuditActions())
+
+  ipcMain.handle(IpcChannels.exportCsv, (_event, kind: CsvExportKind) => exportCsv(kind))
 }

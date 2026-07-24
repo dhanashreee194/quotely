@@ -1,10 +1,12 @@
 import type { BetterSQLite3Database } from 'drizzle-orm/better-sqlite3'
+import { eq } from 'drizzle-orm'
 import {
   DEFAULT_ITEM_COLUMNS,
   DEFAULT_SECTION_BLUEPRINT
 } from '../../shared/metadata'
 import * as schema from './schema'
 import {
+  companyProfile,
   itemColumnDefinitions,
   quotationTemplates,
   templateSections
@@ -61,4 +63,31 @@ export function seedDefaultQuotationTemplate(db: BetterSQLite3Database<typeof sc
       })
       .run()
   }
+}
+
+/**
+ * Seeds the demo company profile on first launch.
+ * `logoPath` must already point at a copied file under userData/assets/.
+ */
+export function seedDemoCompanyProfile(
+  db: BetterSQLite3Database<typeof schema>,
+  logoPath: string
+): void {
+  const existing = db.select().from(companyProfile).where(eq(companyProfile.id, 1)).get()
+  if (existing) {
+    return
+  }
+
+  db.insert(companyProfile)
+    .values({
+      id: 1,
+      name: 'Quotely Demo Co',
+      logoPath,
+      address: '100 Innovation Drive\nDemo City',
+      phone: '+1 555 0100',
+      email: 'hello@quotely.demo',
+      website: 'https://quotely.demo',
+      updatedAt: now()
+    })
+    .run()
 }

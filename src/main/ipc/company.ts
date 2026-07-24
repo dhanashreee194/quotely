@@ -2,6 +2,7 @@ import { eq } from 'drizzle-orm'
 import type { CompanyProfile, CompanyProfileInput } from '../../shared/types'
 import { getDatabase } from '../db'
 import { companyProfile } from '../db/schema'
+import { recordAudit } from './audit'
 
 function now(): string {
   return new Date().toISOString()
@@ -62,5 +63,10 @@ export async function upsertCompanyProfile(data: CompanyProfileInput): Promise<C
   if (!row) {
     throw new Error('Failed to save company profile')
   }
+  recordAudit({
+    action: existing ? 'edit' : 'create',
+    entityType: 'company',
+    entityId: row.id
+  })
   return row
 }

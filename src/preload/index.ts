@@ -93,6 +93,18 @@ const api: QuotelyApi = {
     notifyReady: () => {
       ipcRenderer.send(IpcChannels.documentsReady)
     }
+  },
+  backup: {
+    create: () => ipcRenderer.invoke(IpcChannels.backupCreate),
+    pick: () => ipcRenderer.invoke(IpcChannels.backupPick),
+    restore: (zipPath) => ipcRenderer.invoke(IpcChannels.backupRestore, zipPath)
+  },
+  audit: {
+    list: (filters) => ipcRenderer.invoke(IpcChannels.auditList, filters),
+    actions: () => ipcRenderer.invoke(IpcChannels.auditActions)
+  },
+  export: {
+    csv: (kind) => ipcRenderer.invoke(IpcChannels.exportCsv, kind)
   }
 }
 
