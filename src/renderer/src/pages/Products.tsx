@@ -28,11 +28,52 @@ import PageShell from '../layout/PageShell'
 import { productFormSchema, type ProductFormValues } from '../lib/validation'
 import { useProductsStore } from '../stores/productsStore'
 
+function ProductThumb({ path }: { path: string | null }): React.JSX.Element {
+  const [src, setSrc] = useState<string | null>(null)
+
+  useEffect(() => {
+    let cancelled = false
+    if (!path) {
+      setSrc(null)
+      return
+    }
+    void window.api.assets.getDataUrl(path).then((url) => {
+      if (!cancelled) setSrc(url)
+    })
+    return () => {
+      cancelled = true
+    }
+  }, [path])
+
+  if (!src) {
+    return (
+      <Box
+        sx={{
+          width: 40,
+          height: 40,
+          bgcolor: 'action.hover',
+          borderRadius: 0.5
+        }}
+      />
+    )
+  }
+
+  return (
+    <Box
+      component="img"
+      src={src}
+      alt=""
+      sx={{ width: 40, height: 40, objectFit: 'contain', display: 'block' }}
+    />
+  )
+}
+
 const emptyValues: ProductFormValues = {
   itemCode: '',
   name: '',
   description: '',
   unit: '',
+  imagePath: '',
   standardPrice: 0,
   taxPercent: 0,
   category: '',
@@ -47,6 +88,7 @@ export default function ProductsPage(): React.JSX.Element {
   const [rows, setRows] = useState<Product[]>([])
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(true)
+  const [imagePreview, setImagePreview] = useState<string | null>(null)
 
   const form = useForm<ProductFormValues>({
     resolver: zodResolver(productFormSchema),
@@ -75,23 +117,46 @@ export default function ProductsPage(): React.JSX.Element {
 
     if (editingId == null) {
       form.reset(emptyValues)
+      setImagePreview(null)
       return
     }
 
-    void window.api.products.get(editingId).then((product) => {
+    void window.api.products.get(editingId).then(async (product) => {
       if (!product) return
       form.reset({
         itemCode: product.itemCode,
         name: product.name,
         description: product.description ?? '',
         unit: product.unit ?? '',
+        imagePath: product.imagePath ?? '',
         standardPrice: product.standardPrice,
         taxPercent: product.taxPercent,
         category: product.category ?? '',
         hsnSac: product.hsnSac ?? ''
       })
+      if (product.imagePath) {
+        setImagePreview(await window.api.assets.getDataUrl(product.imagePath))
+      } else {
+        setImagePreview(null)
+      }
     })
   }, [dialogOpen, editingId, form])
+
+  const pickProductImage = async (): Promise<void> => {
+    try {
+      const relativePath = await window.api.assets.pickImage('product')
+      if (!relativePath) return
+      form.setValue('imagePath', relativePath)
+      setImagePreview(await window.api.assets.getDataUrl(relativePath))
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to pick image')
+    }
+  }
+
+  const clearProductImage = (): void => {
+    form.setValue('imagePath', '')
+    setImagePreview(null)
+  }
 
   const onSubmit = form.handleSubmit(async (values) => {
     try {
@@ -143,6 +208,7 @@ export default function ProductsPage(): React.JSX.Element {
         <Table size="small" sx={{ minWidth: 560 }}>
           <TableHead>
             <TableRow>
+              <TableCell sx={{ width: 56 }}>Image</TableCell>
               <TableCell>Code</TableCell>
               <TableCell>Name</TableCell>
               {showSecondaryCols && <TableCell>Unit</TableCell>}
@@ -155,13 +221,16 @@ export default function ProductsPage(): React.JSX.Element {
           <TableBody>
             {!loading && rows.length === 0 && (
               <TableRow>
-                <TableCell colSpan={showSecondaryCols ? 7 : 4}>
+                <TableCell colSpan={showSecondaryCols ? 8 : 5}>
                   <Typography color="text.secondary">No products found.</Typography>
                 </TableCell>
               </TableRow>
             )}
             {rows.map((row) => (
               <TableRow key={row.id} hover>
+                <TableCell>
+                  <ProductThumb path={row.imagePath} />
+                </TableCell>
                 <TableCell>{row.itemCode}</TableCell>
                 <TableCell>{row.name}</TableCell>
                 {showSecondaryCols && <TableCell>{row.unit ?? '—'}</TableCell>}
@@ -226,15 +295,68 @@ export default function ProductsPage(): React.JSX.Element {
                   <TextField
                     {...field}
                     value={field.value ?? ''}
-                    label="Description"
+                    label="Specs / description"
+                    placeholder="e.g. 450MM, ply thickness, finish"
                     error={Boolean(fieldState.error)}
-                    helperText={fieldState.error?.message}
+                    helperText={
+                      fieldState.error?.message ??
+                      'Shown in the Specs column when this product is added to a quote.'
+                    }
                     fullWidth
                     multiline
                     minRows={2}
                   />
                 )}
               />
+              <Box>
+                <Typography variant="subtitle2" sx={{ mb: 1 }}>
+                  Product image
+                </Typography>
+                <Stack direction="row" spacing={2} sx={{ alignItems: 'center' }}>
+                  <Box
+                    sx={{
+                      width: 72,
+                      height: 72,
+                      border: '1px solid',
+                      borderColor: 'divider',
+                      borderRadius: 1,
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      overflow: 'hidden',
+                      bgcolor: 'action.hover'
+                    }}
+                  >
+                    {imagePreview ? (
+                      <Box
+                        component="img"
+                        src={imagePreview}
+                        alt=""
+                        sx={{ maxWidth: '100%', maxHeight: '100%', objectFit: 'contain' }}
+                      />
+                    ) : (
+                      <Typography variant="caption" color="text.secondary">
+                        None
+                      </Typography>
+                    )}
+                  </Box>
+                  <Stack direction="row" spacing={1}>
+                    <Button variant="outlined" size="small" onClick={() => void pickProductImage()}>
+                      Choose image
+                    </Button>
+                    {imagePreview && (
+                      <Button size="small" onClick={clearProductImage}>
+                        Clear
+                      </Button>
+                    )}
+                  </Stack>
+                </Stack>
+                <Controller
+                  name="imagePath"
+                  control={form.control}
+                  render={({ field }) => <input type="hidden" {...field} value={field.value ?? ''} />}
+                />
+              </Box>
               <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
                 <Controller
                   name="unit"

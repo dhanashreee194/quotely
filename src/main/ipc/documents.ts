@@ -63,6 +63,20 @@ export async function getQuotationDocumentModel(
     .all()
     .map((term) => ({ title: term.title, body: term.body }))
 
+  const imageColumnKeys = new Set(
+    printColumns.filter((column) => column.dataType === 'image').map((column) => column.columnKey)
+  )
+  const assetDataUrls: Record<string, string> = {}
+  for (const item of quotation.items) {
+    for (const key of imageColumnKeys) {
+      const raw = item.columnValues?.[key]
+      if (typeof raw !== 'string' || !raw.trim()) continue
+      if (assetDataUrls[raw]) continue
+      const dataUrl = readAssetDataUrl(raw)
+      if (dataUrl) assetDataUrls[raw] = dataUrl
+    }
+  }
+
   return {
     quotation,
     company,
@@ -71,7 +85,8 @@ export async function getQuotationDocumentModel(
     printColumns,
     terms,
     logoDataUrl: company?.logoPath ? readAssetDataUrl(company.logoPath) : null,
-    signatureDataUrl: company?.signaturePath ? readAssetDataUrl(company.signaturePath) : null
+    signatureDataUrl: company?.signaturePath ? readAssetDataUrl(company.signaturePath) : null,
+    assetDataUrls
   }
 }
 

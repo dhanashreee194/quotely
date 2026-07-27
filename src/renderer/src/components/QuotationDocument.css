@@ -147,6 +147,16 @@
   white-space: nowrap;
 }
 
+.qd-item-thumb {
+  display: block;
+  max-width: 56px;
+  max-height: 56px;
+  width: auto;
+  height: auto;
+  object-fit: contain;
+  margin: 0 auto;
+}
+
 .qd-summary {
   width: 280px;
   margin-left: auto;

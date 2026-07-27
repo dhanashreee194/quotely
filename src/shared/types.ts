@@ -72,6 +72,7 @@ export type Product = {
   name: string
   description: string | null
   unit: string | null
+  imagePath: string | null
   standardPrice: number
   taxPercent: number
   category: string | null
@@ -85,6 +86,7 @@ export type ProductInput = {
   name: string
   description?: string | null
   unit?: string | null
+  imagePath?: string | null
   standardPrice: number
   taxPercent: number
   category?: string | null
@@ -122,7 +124,7 @@ export type ChargeRuleInput = {
   appliesToSubtotal: boolean
 }
 
-export type AssetKind = 'logo' | 'signature'
+export type AssetKind = 'logo' | 'signature' | 'product'
 export type ReorderDirection = 'up' | 'down'
 
 export type QuotationTemplate = {

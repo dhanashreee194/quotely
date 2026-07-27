@@ -54,6 +54,22 @@ function getItemCellValue(
   }
 }
 
+function renderItemCell(
+  item: QuotationItem,
+  column: ItemColumnDefinition,
+  currency: string,
+  assetDataUrls: Record<string, string>
+): React.ReactNode {
+  if (column.dataType === 'image') {
+    const path = item.columnValues?.[column.columnKey]
+    if (typeof path !== 'string' || !path.trim()) return '—'
+    const src = assetDataUrls[path]
+    if (!src) return '—'
+    return <img className="qd-item-thumb" src={src} alt="" />
+  }
+  return getItemCellValue(item, column, currency)
+}
+
 function isNumericColumn(column: ItemColumnDefinition): boolean {
   return (
     column.dataType === 'number' ||
@@ -67,9 +83,19 @@ function isNumericColumn(column: ItemColumnDefinition): boolean {
 }
 
 export default function QuotationDocument({ model }: Props): React.JSX.Element {
-  const { quotation, company, customer, printFields, printColumns, terms, logoDataUrl, signatureDataUrl } =
-    model
+  const {
+    quotation,
+    company,
+    customer,
+    printFields,
+    printColumns,
+    terms,
+    logoDataUrl,
+    signatureDataUrl,
+    assetDataUrls
+  } = model
   const currency = quotation.currency || ''
+  const assets = assetDataUrls ?? {}
 
   const companyLines = [
     company?.address,
@@ -175,7 +201,7 @@ export default function QuotationDocument({ model }: Props): React.JSX.Element {
                       key={column.id}
                       className={isNumericColumn(column) ? 'qd-num' : undefined}
                     >
-                      {getItemCellValue(item, column, currency)}
+                      {renderItemCell(item, column, currency, assets)}
                     </td>
                   ))}
                 </tr>

@@ -35,9 +35,83 @@ import type {
 } from '../../../shared/types'
 import DynamicForm from '../components/DynamicForm'
 import PageShell from '../layout/PageShell'
+import Box from '@mui/material/Box'
 
 type EditorItem = QuotationItemInput & { key: string }
 type EditorCharge = QuotationChargeInput & { key: string }
+
+function LineItemImageCell({
+  path,
+  onChange
+}: {
+  path: string
+  onChange: (path: string) => void
+}): React.JSX.Element {
+  const [preview, setPreview] = useState<string | null>(null)
+
+  useEffect(() => {
+    let cancelled = false
+    if (!path) {
+      setPreview(null)
+      return
+    }
+    void window.api.assets.getDataUrl(path).then((url) => {
+      if (!cancelled) setPreview(url)
+    })
+    return () => {
+      cancelled = true
+    }
+  }, [path])
+
+  return (
+    <Stack spacing={0.5} sx={{ minWidth: 88, alignItems: 'flex-start' }}>
+      <Box
+        sx={{
+          width: 56,
+          height: 56,
+          border: '1px solid',
+          borderColor: 'divider',
+          borderRadius: 0.5,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          overflow: 'hidden',
+          bgcolor: 'action.hover'
+        }}
+      >
+        {preview ? (
+          <Box
+            component="img"
+            src={preview}
+            alt=""
+            sx={{ maxWidth: '100%', maxHeight: '100%', objectFit: 'contain' }}
+          />
+        ) : (
+          <Typography variant="caption" color="text.secondary">
+            —
+          </Typography>
+        )}
+      </Box>
+      <Stack direction="row" spacing={0.5}>
+        <Button
+          size="small"
+          onClick={() => {
+            void window.api.assets.pickImage('product').then((relativePath) => {
+              if (relativePath) onChange(relativePath)
+            })
+          }}
+        >
+          {path ? 'Change' : 'Add'}
+        </Button>
+        {path ? (
+          <Button size="small" onClick={() => onChange('')}>
+            Clear
+          </Button>
+        ) : null}
+      </Stack>
+    </Stack>
+  )
+}
 
 function today(): string {
   return new Date().toISOString().slice(0, 10)
@@ -259,7 +333,9 @@ export default function QuotationEditorPage(): React.JSX.Element {
       columnValues: {
         ...items.find((item) => item.key === key)?.columnValues,
         description: product.name,
-        unit: product.unit ?? ''
+        specs: product.description ?? '',
+        unit: product.unit ?? '',
+        image: product.imagePath ?? ''
       }
     })
   }
@@ -577,6 +653,24 @@ export default function QuotationEditorPage(): React.JSX.Element {
                         </TableCell>
                       )
                     }
+                    if (column.dataType === 'image') {
+                      const imagePath = String(item.columnValues?.[column.columnKey] ?? '')
+                      return (
+                        <TableCell key={column.id}>
+                          <LineItemImageCell
+                            path={imagePath}
+                            onChange={(nextPath) =>
+                              updateItem(item.key, {
+                                columnValues: {
+                                  ...item.columnValues,
+                                  [column.columnKey]: nextPath
+                                }
+                              })
+                            }
+                          />
+                        </TableCell>
+                      )
+                    }
                     if (isCoreColumn(column.columnKey)) {
                       return <TableCell key={column.id}>—</TableCell>
                     }
@@ -602,6 +696,8 @@ export default function QuotationEditorPage(): React.JSX.Element {
                             })
                           }
                           sx={{ width: column.width ?? 140 }}
+                          multiline={column.columnKey === 'specs' || column.columnKey === 'description'}
+                          minRows={column.columnKey === 'specs' ? 2 : 1}
                         />
                       </TableCell>
                     )
