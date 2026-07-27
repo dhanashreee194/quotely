@@ -26,6 +26,8 @@ export type QuotationDocumentModel = {
   terms: PrintTermsBlock[]
   logoDataUrl: string | null
   signatureDataUrl: string | null
+  /** Relative asset path → data URL for line-item / product images. */
+  assetDataUrls: Record<string, string>
 }
 
 export function sanitizeFilenamePart(value: string): string {

@@ -40,6 +40,7 @@ export function ensureAssetsDir(): string {
   const root = getAssetsRoot()
   mkdirSync(join(root, 'logos'), { recursive: true })
   mkdirSync(join(root, 'signatures'), { recursive: true })
+  mkdirSync(join(root, 'products'), { recursive: true })
   return root
 }
 
@@ -127,11 +128,23 @@ export function ensureCompanyLogoBranding(): void {
   }
 }
 
+const ASSET_PICK_TITLES: Record<AssetKind, string> = {
+  logo: 'Select company logo',
+  signature: 'Select signature image',
+  product: 'Select product image'
+}
+
+const ASSET_FOLDERS: Record<AssetKind, string> = {
+  logo: 'logos',
+  signature: 'signatures',
+  product: 'products'
+}
+
 export async function pickAndStoreImage(kind: AssetKind): Promise<string | null> {
   ensureAssetsDir()
   const win = BrowserWindow.getFocusedWindow() ?? BrowserWindow.getAllWindows()[0]
   const options: Electron.OpenDialogOptions = {
-    title: kind === 'logo' ? 'Select company logo' : 'Select signature image',
+    title: ASSET_PICK_TITLES[kind],
     properties: ['openFile'],
     filters: [{ name: 'Images', extensions: ['png', 'jpg', 'jpeg', 'gif', 'webp', 'svg'] }]
   }
@@ -145,8 +158,7 @@ export async function pickAndStoreImage(kind: AssetKind): Promise<string | null>
 
   const sourcePath = result.filePaths[0]
   const ext = extname(sourcePath).toLowerCase() || '.png'
-  const folder = kind === 'logo' ? 'logos' : 'signatures'
-  const relativePath = `${folder}/${randomUUID()}${ext}`
+  const relativePath = `${ASSET_FOLDERS[kind]}/${randomUUID()}${ext}`
   const destination = resolveAssetPath(relativePath)
   copyFileSync(sourcePath, destination)
   return relativePath

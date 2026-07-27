@@ -46,7 +46,7 @@ export const CUSTOM_FIELD_TYPES = [
 
 export type CustomFieldType = (typeof CUSTOM_FIELD_TYPES)[number]
 
-export const ITEM_COLUMN_DATA_TYPES = ['text', 'number', 'currency', 'percentage'] as const
+export const ITEM_COLUMN_DATA_TYPES = ['text', 'number', 'currency', 'percentage', 'image'] as const
 
 export type ItemColumnDataType = (typeof ITEM_COLUMN_DATA_TYPES)[number]
 
@@ -64,6 +64,10 @@ export const DEFAULT_SECTION_BLUEPRINT: Array<{
   { name: 'Footer', type: 'footer', displayOrder: 6 }
 ]
 
+/**
+ * Default line-item columns aligned with kitchen/trade quote formats
+ * (Image · Description · Specs · Qty · Unit · Rate · Amount).
+ */
 export const DEFAULT_ITEM_COLUMNS: Array<{
   label: string
   columnKey: string
@@ -74,19 +78,37 @@ export const DEFAULT_ITEM_COLUMNS: Array<{
   participatesInCalc: boolean
 }> = [
   {
+    label: 'Image',
+    columnKey: 'image',
+    dataType: 'image',
+    displayOrder: 0,
+    width: 88,
+    required: false,
+    participatesInCalc: false
+  },
+  {
     label: 'Description',
     columnKey: 'description',
     dataType: 'text',
-    displayOrder: 0,
-    width: 280,
+    displayOrder: 1,
+    width: 220,
     required: true,
+    participatesInCalc: false
+  },
+  {
+    label: 'Specs',
+    columnKey: 'specs',
+    dataType: 'text',
+    displayOrder: 2,
+    width: 180,
+    required: false,
     participatesInCalc: false
   },
   {
     label: 'Qty',
     columnKey: 'qty',
     dataType: 'number',
-    displayOrder: 1,
+    displayOrder: 3,
     width: 80,
     required: true,
     participatesInCalc: true
@@ -95,7 +117,7 @@ export const DEFAULT_ITEM_COLUMNS: Array<{
     label: 'Unit',
     columnKey: 'unit',
     dataType: 'text',
-    displayOrder: 2,
+    displayOrder: 4,
     width: 80,
     required: false,
     participatesInCalc: false
@@ -104,7 +126,7 @@ export const DEFAULT_ITEM_COLUMNS: Array<{
     label: 'Rate',
     columnKey: 'rate',
     dataType: 'currency',
-    displayOrder: 3,
+    displayOrder: 5,
     width: 100,
     required: true,
     participatesInCalc: true
@@ -113,7 +135,7 @@ export const DEFAULT_ITEM_COLUMNS: Array<{
     label: 'Amount',
     columnKey: 'amount',
     dataType: 'currency',
-    displayOrder: 4,
+    displayOrder: 6,
     width: 120,
     required: false,
     participatesInCalc: true

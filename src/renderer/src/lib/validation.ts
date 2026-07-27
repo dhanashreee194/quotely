@@ -29,6 +29,7 @@ export const productFormSchema = z.object({
   name: z.string().trim().min(1, 'Name is required'),
   description: optionalText,
   unit: optionalText,
+  imagePath: optionalText,
   standardPrice: z.number().min(0, 'Price must be 0 or greater'),
   taxPercent: z.number().min(0, 'Tax must be 0 or greater').max(100, 'Tax cannot exceed 100'),
   category: optionalText,

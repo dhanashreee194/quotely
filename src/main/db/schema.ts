@@ -45,6 +45,7 @@ export const products = sqliteTable('products', {
   name: text('name').notNull(),
   description: text('description'),
   unit: text('unit'),
+  imagePath: text('image_path'),
   standardPrice: real('standard_price').notNull().default(0),
   taxPercent: real('tax_percent').notNull().default(0),
   category: text('category'),
