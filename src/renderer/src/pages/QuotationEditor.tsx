@@ -21,6 +21,11 @@ import PictureAsPdfIcon from '@mui/icons-material/PictureAsPdf'
 import PrintIcon from '@mui/icons-material/Print'
 import VisibilityOutlinedIcon from '@mui/icons-material/VisibilityOutlined'
 import { calculateQuotationTotals } from '../../../shared/calc'
+import {
+  KITCHEN_CATALOG,
+  KITCHEN_SUBTYPES_BY_CODE,
+  MATERIAL_FINISHES
+} from '../../../shared/metadata'
 import type {
   ChargeRule,
   Customer,
@@ -285,12 +290,71 @@ export default function QuotationEditorPage(): React.JSX.Element {
       )
   }, [editingId])
 
+  const baseMaterialValue = String(customFieldValues.baseMaterial ?? '')
+
   const customFields = useMemo(() => {
     if (!templateBundle) return [] as CustomFieldDefinitionWithOptions[]
     return templateBundle.sections
       .filter((section) => section.enabled && section.type !== 'items')
       .flatMap((section) => section.fields)
-  }, [templateBundle])
+      .map((field) => {
+        // Finish subtypes depend on the selected base material (material sheet).
+        if (field.fieldKey !== 'finish') return field
+        const allowed = MATERIAL_FINISHES[baseMaterialValue]
+        if (!allowed) return field
+        return {
+          ...field,
+          options: field.options.filter((option) => allowed.includes(option.value))
+        }
+      })
+  }, [templateBundle, baseMaterialValue])
+
+  // Keep the finish value valid for the selected material.
+  const allowedFinishes = MATERIAL_FINISHES[baseMaterialValue]
+  const currentFinish = String(customFieldValues.finish ?? '')
+  const coercedFinish =
+    allowedFinishes && currentFinish && !allowedFinishes.includes(currentFinish)
+      ? allowedFinishes[0]
+      : currentFinish
+
+  useEffect(() => {
+    if (coercedFinish === currentFinish) return
+    setCustomFieldValues((prev) => ({ ...prev, finish: coercedFinish }))
+  }, [coercedFinish, currentFinish])
+
+  // Pre-fill a new quotation with the full kitchen catalog (exact sheet order + quantities).
+  useEffect(() => {
+    if (editingId != null || products.length === 0) return
+    const byCode = new Map(products.map((product) => [product.itemCode, product]))
+    const rows = KITCHEN_CATALOG.map((line) => {
+      const product = byCode.get(line.itemCode)
+      if (!product) return null
+      const subtypeOptions = KITCHEN_SUBTYPES_BY_CODE[line.itemCode]
+      return {
+        key: newKey(),
+        productId: product.id,
+        qty: line.defaultQty,
+        rate: product.standardPrice,
+        discount: 0,
+        discountType: 'fixed' as const,
+        taxPercent: product.taxPercent,
+        columnValues: {
+          description: product.name,
+          specs: product.description ?? '',
+          unit: product.unit ?? '',
+          image: product.imagePath ?? '',
+          category: product.category ?? '',
+          subtype: subtypeOptions ? subtypeOptions[0] : ''
+        }
+      }
+    }).filter((row): row is NonNullable<typeof row> => Boolean(row))
+    if (rows.length === 0) return
+    setItems((prev) => {
+      const untouched =
+        prev.length === 1 && !prev[0].productId && !prev[0].columnValues?.description
+      return untouched ? rows : prev
+    })
+  }, [editingId, products])
 
   const itemColumns = useMemo(
     () => (templateBundle?.itemColumns.filter((column) => column.visible) ?? []) as ItemColumnDefinition[],
@@ -326,6 +390,7 @@ export default function QuotationEditorPage(): React.JSX.Element {
       updateItem(key, { productId })
       return
     }
+    const subtypeOptions = KITCHEN_SUBTYPES_BY_CODE[product.itemCode]
     updateItem(key, {
       productId,
       rate: product.standardPrice,
@@ -335,7 +400,9 @@ export default function QuotationEditorPage(): React.JSX.Element {
         description: product.name,
         specs: product.description ?? '',
         unit: product.unit ?? '',
-        image: product.imagePath ?? ''
+        image: product.imagePath ?? '',
+        category: product.category ?? '',
+        subtype: subtypeOptions ? subtypeOptions[0] : ''
       }
     })
   }
@@ -534,10 +601,12 @@ export default function QuotationEditorPage(): React.JSX.Element {
               <DynamicForm
                 key={`custom-${editingId ?? 'new'}-${customFields.map((field) => field.id).join('-')}-${
                   existing ? 'loaded' : 'blank'
-                }`}
+                }-${baseMaterialValue}`}
                 fields={customFields}
                 hideSubmit
-                initialValues={customFieldValues}
+                initialValues={
+                  coercedFinish ? { ...customFieldValues, finish: coercedFinish } : customFieldValues
+                }
                 onChange={setCustomFieldValues}
               />
             </>
@@ -673,6 +742,57 @@ export default function QuotationEditorPage(): React.JSX.Element {
                     }
                     if (isCoreColumn(column.columnKey)) {
                       return <TableCell key={column.id}>—</TableCell>
+                    }
+                    if (column.columnKey === 'description') {
+                      const product = item.productId
+                        ? products.find((row) => row.id === item.productId)
+                        : undefined
+                      const subtypeOptions = product
+                        ? KITCHEN_SUBTYPES_BY_CODE[product.itemCode]
+                        : undefined
+                      return (
+                        <TableCell key={column.id}>
+                          <Stack spacing={0.75} sx={{ minWidth: column.width ?? 220 }}>
+                            <TextField
+                              size="small"
+                              value={String(item.columnValues?.description ?? '')}
+                              onChange={(event) =>
+                                updateItem(item.key, {
+                                  columnValues: {
+                                    ...item.columnValues,
+                                    description: event.target.value
+                                  }
+                                })
+                              }
+                              fullWidth
+                              multiline
+                            />
+                            {subtypeOptions && (
+                              <TextField
+                                select
+                                size="small"
+                                label="Subtype"
+                                value={String(item.columnValues?.subtype ?? '')}
+                                onChange={(event) =>
+                                  updateItem(item.key, {
+                                    columnValues: {
+                                      ...item.columnValues,
+                                      subtype: event.target.value
+                                    }
+                                  })
+                                }
+                                fullWidth
+                              >
+                                {subtypeOptions.map((option) => (
+                                  <MenuItem key={option} value={option}>
+                                    {option}
+                                  </MenuItem>
+                                ))}
+                              </TextField>
+                            )}
+                          </Stack>
+                        </TableCell>
+                      )
                     }
                     return (
                       <TableCell key={column.id}>

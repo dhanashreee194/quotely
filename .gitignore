@@ -9,3 +9,5 @@ quotely.dev.db-*
 e2e-results
 playwright-report
 test-results
+.smoke
+*.tsbuildinfo

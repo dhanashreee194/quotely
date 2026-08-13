@@ -26,6 +26,10 @@ export type QuotationDocumentModel = {
   terms: PrintTermsBlock[]
   logoDataUrl: string | null
   signatureDataUrl: string | null
+  /** Letterhead banner printed at the top of quote pages (null when not installed). */
+  letterheadDataUrl: string | null
+  /** Bank / payment QR code shown next to bank details (null when not installed). */
+  bankQrDataUrl: string | null
   /** Relative asset path → data URL for line-item / product images. */
   assetDataUrls: Record<string, string>
 }

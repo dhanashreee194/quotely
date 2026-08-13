@@ -1,0 +1,1860 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Quotely · Client Demo — Kitchen Quotation Prototype</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800&family=Source+Serif+4:opsz,wght@8..60,500;8..60,700&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --ink: #14201c;
+      --muted: #5a6b64;
+      --line: #c9d5cf;
+      --paper: #fbfcfb;
+      --panel: #ffffff;
+      --forest: #1b4d3e;
+      --forest-deep: #0f3329;
+      --moss: #2f7a5a;
+      --sand: #e7efe9;
+      --amber: #f0c45c;
+      --open: #f0d76a;
+      --sent: #ef9a4a;
+      --done: #2e9e5b;
+      --rejected: #d94b5c;
+      --shadow: 0 18px 50px rgba(15, 51, 41, 0.12);
+      --radius: 18px;
+      --font: "Outfit", system-ui, sans-serif;
+      --serif: "Source Serif 4", Georgia, serif;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body { min-height: 100%; }
+    body {
+      font-family: var(--font);
+      color: var(--ink);
+      background:
+        radial-gradient(1200px 600px at 10% -10%, rgba(47, 122, 90, 0.18), transparent 55%),
+        radial-gradient(900px 500px at 100% 0%, rgba(239, 154, 74, 0.14), transparent 50%),
+        linear-gradient(180deg, #edf3ef 0%, #f7faf8 40%, #eef4f0 100%);
+    }
+
+    button, input, select { font: inherit; }
+    button { cursor: pointer; border: 0; background: none; }
+    a { color: inherit; text-decoration: none; }
+
+    .app {
+      display: grid;
+      grid-template-columns: 240px 1fr;
+      min-height: 100vh;
+    }
+
+    .sidebar {
+      background: linear-gradient(180deg, var(--forest-deep), #16352c 55%, #1b4d3e);
+      color: #e8f2ec;
+      padding: 28px 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 28px;
+      position: sticky;
+      top: 0;
+      height: 100vh;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .brand img {
+      width: 48px;
+      height: 48px;
+      border-radius: 50%;
+      object-fit: cover;
+      box-shadow: 0 0 0 3px rgba(255,255,255,0.15);
+    }
+
+    .brand strong {
+      display: block;
+      font-size: 1.25rem;
+      letter-spacing: 0.02em;
+    }
+
+    .brand span {
+      font-size: 0.78rem;
+      opacity: 0.72;
+    }
+
+    .nav {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .nav button {
+      text-align: left;
+      color: rgba(232, 242, 236, 0.78);
+      padding: 12px 14px;
+      border-radius: 12px;
+      transition: background 160ms ease, color 160ms ease, transform 160ms ease;
+    }
+
+    .nav button:hover { background: rgba(255,255,255,0.08); color: #fff; }
+    .nav button.active {
+      background: rgba(255,255,255,0.14);
+      color: #fff;
+      font-weight: 600;
+      box-shadow: inset 0 0 0 1px rgba(255,255,255,0.08);
+    }
+
+    .sidebar-note {
+      margin-top: auto;
+      padding: 14px;
+      border-radius: 14px;
+      background: rgba(255,255,255,0.08);
+      font-size: 0.82rem;
+      line-height: 1.45;
+      color: rgba(232,242,236,0.85);
+    }
+
+    .main {
+      padding: 28px 32px 48px;
+      max-width: 1280px;
+    }
+
+    .topbar {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-end;
+      gap: 16px;
+      margin-bottom: 24px;
+    }
+
+    .eyebrow {
+      font-size: 0.75rem;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      color: var(--moss);
+      font-weight: 700;
+      margin-bottom: 6px;
+    }
+
+    h1 {
+      font-size: clamp(1.8rem, 2.4vw, 2.4rem);
+      font-weight: 750;
+      letter-spacing: -0.03em;
+      line-height: 1.1;
+    }
+
+    .subtitle {
+      margin-top: 8px;
+      color: var(--muted);
+      max-width: 52ch;
+      line-height: 1.5;
+    }
+
+    .actions { display: flex; gap: 10px; flex-wrap: wrap; }
+
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 12px 18px;
+      border-radius: 999px;
+      font-weight: 650;
+      transition: transform 140ms ease, box-shadow 140ms ease, filter 140ms ease;
+    }
+
+    .btn:hover { transform: translateY(-1px); }
+    .btn-primary {
+      background: linear-gradient(135deg, var(--forest), var(--moss));
+      color: #fff;
+      box-shadow: 0 10px 24px rgba(27, 77, 62, 0.28);
+    }
+    .btn-secondary {
+      background: var(--panel);
+      color: var(--forest);
+      box-shadow: inset 0 0 0 1px var(--line);
+    }
+
+    .panel {
+      background: var(--panel);
+      border: 1px solid rgba(201, 213, 207, 0.9);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+    }
+
+    .stats {
+      display: grid;
+      grid-template-columns: 1.4fr 1fr 1fr;
+      gap: 14px;
+      margin-bottom: 18px;
+    }
+
+    .stat {
+      padding: 18px 20px;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .stat::after {
+      content: "";
+      position: absolute;
+      right: -20px;
+      top: -30px;
+      width: 110px;
+      height: 110px;
+      border-radius: 50%;
+      background: rgba(47, 122, 90, 0.08);
+    }
+
+    .stat label {
+      display: block;
+      color: var(--muted);
+      font-size: 0.86rem;
+      margin-bottom: 10px;
+    }
+
+    .stat strong {
+      font-size: 2rem;
+      letter-spacing: -0.04em;
+    }
+
+    .pill {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-width: 42px;
+      height: 42px;
+      padding: 0 12px;
+      border-radius: 999px;
+      background: #f8d9de;
+      color: #8a2030;
+      font-weight: 700;
+    }
+
+    .status-row {
+      display: flex;
+      justify-content: center;
+      gap: 12px;
+      flex-wrap: wrap;
+      margin: 8px 0 20px;
+    }
+
+    .status-chip {
+      min-width: 110px;
+      padding: 12px 22px;
+      border-radius: 999px;
+      font-weight: 750;
+      font-size: 0.95rem;
+      box-shadow: 0 8px 18px rgba(20, 32, 28, 0.08);
+      transition: transform 140ms ease, box-shadow 140ms ease, outline 140ms ease;
+    }
+
+    .status-chip:hover { transform: translateY(-2px); }
+    .status-chip.active { outline: 3px solid rgba(27, 77, 62, 0.35); outline-offset: 2px; }
+    .status-chip.open { background: var(--open); color: #5a4700; }
+    .status-chip.sent { background: var(--sent); color: #5a2800; }
+    .status-chip.done { background: var(--done); color: #fff; }
+    .status-chip.rejected { background: var(--rejected); color: #fff; }
+
+    .toolbar {
+      display: flex;
+      gap: 12px;
+      align-items: center;
+      padding: 14px 16px;
+      border-bottom: 1px solid var(--line);
+    }
+
+    .search {
+      flex: 1;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      background: var(--sand);
+      border-radius: 12px;
+      padding: 10px 14px;
+      color: var(--muted);
+    }
+
+    .search input {
+      border: 0;
+      background: transparent;
+      width: 100%;
+      outline: none;
+      color: var(--ink);
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+
+    th, td {
+      text-align: left;
+      padding: 14px 16px;
+      border-bottom: 1px solid var(--line);
+      font-size: 0.94rem;
+    }
+
+    th {
+      color: var(--muted);
+      font-size: 0.78rem;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      background: #f4f8f6;
+    }
+
+    tr:last-child td { border-bottom: 0; }
+    tbody tr { transition: background 120ms ease; }
+    tbody tr:hover { background: #f6faf8; }
+
+    .badge {
+      display: inline-flex;
+      padding: 4px 10px;
+      border-radius: 999px;
+      font-size: 0.75rem;
+      font-weight: 700;
+    }
+
+    .badge.open { background: #fff4c2; color: #6a5600; }
+    .badge.sent { background: #ffe0c2; color: #8a3d00; }
+    .badge.done { background: #d7f3e2; color: #0f5f35; }
+    .badge.rejected { background: #ffd5db; color: #8a1f2d; }
+
+    .row-actions { display: flex; gap: 8px; }
+    .icon-btn {
+      width: 34px;
+      height: 34px;
+      border-radius: 10px;
+      display: grid;
+      place-items: center;
+      background: var(--sand);
+      color: var(--forest);
+    }
+
+    .screen { display: none; animation: rise 320ms ease; }
+    .screen.active { display: block; }
+
+    @keyframes rise {
+      from { opacity: 0; transform: translateY(8px); }
+      to { opacity: 1; transform: none; }
+    }
+
+    .wizard {
+      display: grid;
+      grid-template-columns: 1.1fr 0.9fr;
+      gap: 18px;
+    }
+
+    .choice-group { padding: 22px; margin-bottom: 14px; }
+    .choice-group h3 {
+      font-size: 0.95rem;
+      margin-bottom: 14px;
+      letter-spacing: -0.01em;
+    }
+
+    .choices {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+
+    .choice {
+      padding: 10px 16px;
+      border-radius: 999px;
+      border: 1.5px solid var(--line);
+      background: #fff;
+      color: var(--ink);
+      font-weight: 600;
+    }
+
+    .choice.selected {
+      border-color: var(--forest);
+      background: var(--forest);
+      color: #fff;
+      box-shadow: 0 8px 18px rgba(27, 77, 62, 0.22);
+    }
+
+    .choice-hint {
+      margin-top: 10px;
+      font-size: 0.82rem;
+      color: var(--muted);
+      line-height: 1.4;
+    }
+
+    .subtype-select-list {
+      display: grid;
+      gap: 12px;
+    }
+
+    .subtype-row {
+      display: grid;
+      grid-template-columns: 1fr 1.2fr;
+      gap: 12px;
+      align-items: center;
+    }
+
+    .subtype-row label {
+      font-size: 0.88rem;
+      font-weight: 650;
+      color: var(--ink);
+    }
+
+    .subtype-row select {
+      width: 100%;
+      border: 1.5px solid var(--line);
+      border-radius: 12px;
+      padding: 10px 12px;
+      background: #fff;
+      color: var(--ink);
+      outline: none;
+    }
+
+    .subtype-row select:focus {
+      border-color: var(--forest);
+      box-shadow: 0 0 0 3px rgba(27, 77, 62, 0.12);
+    }
+
+    .q-options.wide {
+      grid-template-columns: repeat(3, 1fr);
+    }
+
+    @media (max-width: 720px) {
+      .subtype-row { grid-template-columns: 1fr; }
+    }
+
+    .letterhead {
+      width: 100%;
+      display: block;
+      margin-bottom: 10px;
+      border-bottom: 2.5px solid var(--forest);
+      padding-bottom: 8px;
+    }
+
+    /* ---- Cover page (page 1 of the preview) ---- */
+    .quote-page.cover {
+      margin-bottom: 26px;
+      display: flex;
+      flex-direction: column;
+      min-height: 1050px;
+    }
+
+    .cover-intro {
+      margin-top: 14px;
+      font-size: 0.92rem;
+      line-height: 1.65;
+      color: #26332e;
+    }
+
+    .cover-intro p { margin: 0 0 12px; }
+
+    .cover-to {
+      margin: 14px 0 20px;
+      padding: 16px 20px;
+      border-left: 4px solid var(--forest);
+      background: #f2f7f4;
+      border-radius: 0 10px 10px 0;
+      max-width: 340px;
+    }
+
+    .cover-to .to-label {
+      font-size: 0.78rem;
+      font-weight: 750;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--muted);
+    }
+
+    .cover-to .to-name {
+      font-family: "Fraunces", serif;
+      font-size: 1.35rem;
+      font-weight: 700;
+      color: var(--forest);
+      margin: 4px 0 2px;
+    }
+
+    .cover-to .to-contact {
+      font-size: 0.92rem;
+      color: #26332e;
+    }
+
+    .cover-footer {
+      margin-top: auto;
+      padding-top: 18px;
+      border-top: 2px solid var(--forest);
+      font-size: 0.78rem;
+      color: #4a5a53;
+      text-align: center;
+    }
+
+    .cover-footer .cover-quote-line {
+      font-weight: 700;
+      color: var(--forest);
+      margin-bottom: 8px;
+    }
+
+    .cover-footer .cover-company { line-height: 1.55; }
+
+    .cover-footer .cover-tagline {
+      margin-top: 8px;
+      font-weight: 750;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      color: #8c2f7c;
+    }
+
+    .bank-flex {
+      display: flex;
+      gap: 14px;
+      align-items: flex-start;
+    }
+
+    .bank-flex img.qr {
+      width: 92px;
+      height: 92px;
+      object-fit: contain;
+      border: 1px solid #c5d0cb;
+      padding: 4px;
+      background: #fff;
+    }
+
+    /* ---- In-document editing (quote-format editor) ---- */
+    .q-options .opt-select {
+      display: block;
+      width: 100%;
+      margin-top: 2px;
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      padding: 4px 6px;
+      background: #fff;
+      color: var(--forest);
+      font-weight: 700;
+      font-size: 0.85rem;
+      outline: none;
+    }
+
+    .q-table.editable input[type="number"],
+    .q-table.editable input[type="text"] {
+      width: 100%;
+      border: 1px dashed transparent;
+      border-radius: 6px;
+      padding: 3px 5px;
+      background: transparent;
+      color: inherit;
+      font: inherit;
+      outline: none;
+    }
+
+    .q-table.editable input[type="number"] { text-align: right; }
+
+    .q-table.editable input:hover { border-color: #b9c8c1; background: #f6faf7; }
+
+    .q-table.editable input:focus {
+      border: 1px solid var(--forest);
+      background: #fff;
+      box-shadow: 0 0 0 2px rgba(27, 77, 62, 0.12);
+    }
+
+    .q-table.editable select.subtype {
+      display: block;
+      margin-top: 3px;
+      max-width: 210px;
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      padding: 2px 6px;
+      background: #fff;
+      color: var(--forest);
+      font-size: 0.78rem;
+      font-weight: 600;
+      outline: none;
+    }
+
+    .q-table.editable img.pimg {
+      width: 42px;
+      height: 42px;
+      object-fit: contain;
+      display: block;
+      margin: 0 auto;
+    }
+
+    .q-table.editable .del {
+      width: 24px;
+      height: 24px;
+      border-radius: 6px;
+      display: grid;
+      place-items: center;
+      background: #ffe3e7;
+      color: #b42335;
+      font-size: 0.78rem;
+      margin: 0 auto;
+    }
+
+    .q-table.editable .del:hover { background: #ffd0d7; }
+
+    .add-product-bar {
+      display: flex;
+      justify-content: center;
+      padding: 12px 0 4px;
+      border-bottom: 1px solid var(--line);
+      margin-bottom: 10px;
+    }
+
+    /* ---- Add product modal ---- */
+    .modal-backdrop {
+      position: fixed;
+      inset: 0;
+      background: rgba(10, 25, 20, 0.45);
+      display: grid;
+      place-items: center;
+      z-index: 60;
+    }
+
+    .modal-backdrop[hidden] { display: none; }
+
+    .modal {
+      width: min(560px, calc(100vw - 40px));
+      background: #fff;
+      border-radius: 18px;
+      padding: 22px 24px;
+      box-shadow: 0 24px 70px rgba(0, 0, 0, 0.25);
+    }
+
+    .modal h3 {
+      margin: 0 0 14px;
+      font-family: "Fraunces", serif;
+      font-size: 1.25rem;
+      color: var(--forest);
+    }
+
+    .modal-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+    }
+
+    .modal-grid label {
+      display: flex;
+      flex-direction: column;
+      gap: 5px;
+      font-size: 0.8rem;
+      font-weight: 650;
+      color: var(--muted);
+    }
+
+    .modal-grid label:nth-child(2) { grid-column: span 1; }
+
+    .modal-grid input,
+    .modal-grid select {
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      padding: 8px 10px;
+      font: inherit;
+      font-size: 0.9rem;
+      color: var(--ink);
+      background: #fff;
+      outline: none;
+    }
+
+    .modal-grid input:focus,
+    .modal-grid select:focus {
+      border-color: var(--forest);
+      box-shadow: 0 0 0 3px rgba(27, 77, 62, 0.12);
+    }
+
+    .modal-actions {
+      display: flex;
+      justify-content: flex-end;
+      gap: 10px;
+      margin-top: 18px;
+    }
+
+    .preview-card {
+      padding: 24px;
+      background:
+        linear-gradient(160deg, rgba(27,77,62,0.94), rgba(15,51,41,0.98)),
+        var(--forest);
+      color: #eef7f2;
+      min-height: 100%;
+      display: flex;
+      flex-direction: column;
+      gap: 18px;
+    }
+
+    .preview-card h2 {
+      font-family: var(--serif);
+      font-size: 1.8rem;
+      font-weight: 700;
+      line-height: 1.15;
+    }
+
+    .preview-card p { opacity: 0.82; line-height: 1.5; }
+    .preview-meta {
+      display: grid;
+      gap: 8px;
+      margin-top: auto;
+      padding-top: 12px;
+      border-top: 1px solid rgba(255,255,255,0.15);
+      font-size: 0.92rem;
+    }
+
+    .quote-shell {
+      background: #dfe8e3;
+      border-radius: var(--radius);
+      padding: 24px;
+      overflow: auto;
+    }
+
+    .quote-page {
+      width: min(820px, 100%);
+      margin: 0 auto;
+      background: #fff;
+      padding: 28px 30px 34px;
+      box-shadow: var(--shadow);
+      position: relative;
+      overflow: hidden;
+      color: #1a2421;
+    }
+
+    .quote-page::before {
+      content: "SILEX KITCHEN";
+      position: absolute;
+      inset: 0;
+      display: grid;
+      place-items: center;
+      font-size: 64px;
+      font-weight: 800;
+      letter-spacing: 0.08em;
+      color: rgba(27, 77, 62, 0.05);
+      transform: rotate(-28deg);
+      pointer-events: none;
+      white-space: nowrap;
+    }
+
+    .q-header, .q-grid, .q-options, .q-table, .q-summary, .q-bank, .q-terms {
+      position: relative;
+      z-index: 1;
+    }
+
+    .q-header {
+      display: flex;
+      justify-content: space-between;
+      gap: 16px;
+      border-bottom: 2.5px solid var(--forest);
+      padding-bottom: 12px;
+      margin-bottom: 14px;
+    }
+
+    .q-brand {
+      display: flex;
+      gap: 12px;
+      align-items: flex-start;
+    }
+
+    .q-brand img {
+      width: 56px;
+      height: 56px;
+      border-radius: 50%;
+      object-fit: cover;
+    }
+
+    .q-company {
+      font-size: 1.15rem;
+      font-weight: 800;
+      color: var(--forest);
+      text-transform: uppercase;
+      letter-spacing: 0.03em;
+    }
+
+    .q-muted {
+      color: #5c6b66;
+      font-size: 0.82rem;
+      line-height: 1.4;
+      white-space: pre-line;
+    }
+
+    .q-meta { text-align: right; }
+    .q-meta h2 {
+      color: var(--forest);
+      letter-spacing: 0.1em;
+      font-size: 1.35rem;
+      margin-bottom: 8px;
+    }
+
+    .q-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+      margin-bottom: 12px;
+    }
+
+    .q-block {
+      border: 1px solid #c5d0cb;
+      background: #f7faf8;
+      padding: 10px 12px;
+    }
+
+    .q-block h3 {
+      font-size: 0.78rem;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      color: var(--forest);
+      border-bottom: 1px solid #c5d0cb;
+      padding-bottom: 4px;
+      margin-bottom: 8px;
+    }
+
+    .q-dl {
+      display: grid;
+      grid-template-columns: 7.2rem 1fr;
+      gap: 4px 8px;
+      font-size: 0.84rem;
+    }
+
+    .q-dl dt { color: #5c6b66; font-weight: 600; }
+    .q-dl dd { font-weight: 550; }
+
+    .q-options {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 8px;
+      margin-bottom: 12px;
+    }
+
+    .q-options div {
+      border: 1px solid #c5d0cb;
+      padding: 8px 10px;
+    }
+
+    .q-options span {
+      display: block;
+      font-size: 0.7rem;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: #5c6b66;
+    }
+
+    .q-options strong {
+      color: var(--forest);
+      font-size: 0.92rem;
+    }
+
+    .q-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.8rem;
+      margin-bottom: 12px;
+    }
+
+    .q-table th, .q-table td {
+      border: 1px solid #9eb0a8;
+      padding: 6px 7px;
+      vertical-align: middle;
+    }
+
+    .q-table th {
+      background: var(--forest);
+      color: #fff;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      font-size: 0.7rem;
+    }
+
+    .q-table .cat td {
+      background: #e8f3ec;
+      color: #1f7a4c;
+      font-weight: 750;
+      text-transform: uppercase;
+      letter-spacing: 0.03em;
+    }
+
+    .q-num { text-align: right; white-space: nowrap; }
+    .thumb {
+      width: 42px;
+      height: 42px;
+      margin: 0 auto;
+      border: 1px dashed #b7c4be;
+      background: #f3f6f4;
+      display: block;
+    }
+
+    .q-summary {
+      width: 280px;
+      margin-left: auto;
+      border: 1px solid #c5d0cb;
+      padding: 8px 12px;
+      margin-bottom: 14px;
+      font-size: 0.86rem;
+    }
+
+    .q-summary-row {
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 4px 0;
+      border-bottom: 1px solid #d8e0dc;
+    }
+
+    .q-summary-row.total {
+      border: 0;
+      border-top: 2px solid var(--forest);
+      margin-top: 4px;
+      padding-top: 8px;
+      font-weight: 800;
+      color: var(--forest);
+      font-size: 0.98rem;
+    }
+
+    .q-terms h3, .q-bank h3 {
+      font-size: 0.82rem;
+      text-transform: uppercase;
+      color: var(--forest);
+      margin-bottom: 6px;
+    }
+
+    .q-terms ol {
+      padding-left: 1.1rem;
+      color: #5c6b66;
+      font-size: 0.8rem;
+      line-height: 1.45;
+    }
+
+    .footer-grid {
+      display: grid;
+      grid-template-columns: 1.3fr 1fr;
+      gap: 16px;
+      margin-top: 14px;
+      padding-top: 10px;
+      border-top: 1px solid #c5d0cb;
+    }
+
+    .sign {
+      margin-top: 36px;
+      border-top: 1px solid #1a2421;
+      width: 170px;
+      padding-top: 4px;
+      font-size: 0.75rem;
+      color: #5c6b66;
+    }
+
+    .products-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+      gap: 14px;
+    }
+
+    .product {
+      padding: 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .product .img {
+      height: 120px;
+      border-radius: 12px;
+      background:
+        linear-gradient(135deg, rgba(27,77,62,0.08), rgba(239,154,74,0.12)),
+        repeating-linear-gradient(45deg, #f4f8f6 0 8px, #eef4f0 8px 16px);
+      border: 1px solid var(--line);
+      display: grid;
+      place-items: center;
+      color: var(--muted);
+      font-size: 0.8rem;
+      font-weight: 600;
+    }
+
+    .product h4 { font-size: 0.98rem; line-height: 1.25; }
+    .product .meta { color: var(--muted); font-size: 0.8rem; }
+    .product .price {
+      margin-top: auto;
+      font-weight: 750;
+      color: var(--forest);
+      font-size: 1.05rem;
+    }
+
+    .demo-banner {
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      align-items: center;
+      padding: 12px 16px;
+      border-radius: 14px;
+      background: linear-gradient(90deg, rgba(27,77,62,0.1), rgba(239,154,74,0.12));
+      border: 1px solid rgba(27,77,62,0.15);
+      margin-bottom: 18px;
+      font-size: 0.9rem;
+    }
+
+    @media (max-width: 980px) {
+      .app { grid-template-columns: 1fr; }
+      .sidebar {
+        position: relative;
+        height: auto;
+        border-radius: 0 0 20px 20px;
+      }
+      .stats, .wizard, .q-grid, .q-options, .footer-grid { grid-template-columns: 1fr; }
+      .main { padding: 20px 16px 40px; }
+    }
+
+    @media print {
+      .sidebar, .topbar, .demo-banner, .actions, .status-row, .toolbar { display: none !important; }
+      .app { display: block; }
+      .main { padding: 0; max-width: none; }
+      .screen { display: none !important; }
+      #screen-quote { display: block !important; }
+      .quote-shell { background: #fff; padding: 0; }
+      .quote-page { box-shadow: none; width: 100%; }
+      .quote-page.cover { page-break-after: always; min-height: auto; margin-bottom: 0; }
+    }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <aside class="sidebar">
+      <div class="brand">
+        <img src="logo.png" alt="Quotely" />
+        <div>
+          <strong>Quotely</strong>
+          <span>Kitchen Quote Demo</span>
+        </div>
+      </div>
+      <nav class="nav" id="nav">
+        <button class="active" data-screen="dashboard">Dashboard</button>
+        <button data-screen="wizard">New Quotation</button>
+        <button data-screen="quote">Quote Preview</button>
+        <button data-screen="products">Products</button>
+      </nav>
+      <div class="sidebar-note">
+        Client prototype for modular kitchen quotations — aligned with the Excel format sheet and UXPin flow (Tendam / Basket, materials, finishes, item images & units).
+      </div>
+    </aside>
+
+    <main class="main">
+      <div class="demo-banner">
+        <div><strong>Prototype demo</strong> — interactive walkthrough for client presentation. Data is sample-only.</div>
+        <button class="btn btn-secondary" type="button" onclick="go('quote')">Open sample quote</button>
+      </div>
+
+      <!-- DASHBOARD -->
+      <section class="screen active" id="screen-dashboard">
+        <div class="topbar">
+          <div>
+            <div class="eyebrow">Pipeline</div>
+            <h1>Quotations</h1>
+            <p class="subtitle">UXPin-style status board with today / monthly counts, search, and quick actions.</p>
+          </div>
+          <div class="actions">
+            <button class="btn btn-secondary" type="button" onclick="go('products')">Add New Product</button>
+            <button class="btn btn-primary" type="button" onclick="go('wizard')">Add New Quotation</button>
+          </div>
+        </div>
+
+        <div class="stats">
+          <div class="panel stat">
+            <label>Quotation Count</label>
+            <div style="display:flex; gap:28px; align-items:center;">
+              <div>Today’s <span class="pill" style="margin-left:8px">50</span></div>
+              <div>Monthly <span class="pill" style="margin-left:8px; background:#f7c9d0">600</span></div>
+            </div>
+          </div>
+          <div class="panel stat">
+            <label>Open value</label>
+            <strong>₹18.4L</strong>
+          </div>
+          <div class="panel stat">
+            <label>Accepted this month</label>
+            <strong>42</strong>
+          </div>
+        </div>
+
+        <div class="status-row" id="statusChips">
+          <button class="status-chip open active" data-filter="Open" type="button">Open</button>
+          <button class="status-chip sent" data-filter="Sent" type="button">Sent</button>
+          <button class="status-chip done" data-filter="Done" type="button">Done</button>
+          <button class="status-chip rejected" data-filter="Rejected" type="button">Rejected</button>
+        </div>
+
+        <div class="panel">
+          <div class="toolbar">
+            <div class="search">
+              <span aria-hidden="true">⌕</span>
+              <input id="quoteSearch" type="search" placeholder="Search Name, Contact No, amount" />
+            </div>
+          </div>
+          <table>
+            <thead>
+              <tr>
+                <th>Name</th>
+                <th>Mobile</th>
+                <th>Amount</th>
+                <th>Location</th>
+                <th>Status</th>
+                <th>Action</th>
+              </tr>
+            </thead>
+            <tbody id="quoteRows"></tbody>
+          </table>
+        </div>
+      </section>
+
+      <!-- WIZARD: editable quotation in the exact sheet format -->
+      <section class="screen" id="screen-wizard">
+        <div class="topbar">
+          <div>
+            <div class="eyebrow">Create</div>
+            <h1 id="wizardTitle">New quotation — Tendam · BWP Ply · Laminate</h1>
+            <p class="subtitle">Work directly inside the quote: delete products, edit rates, qty &amp; details in place. Products with subtypes show a dropdown.</p>
+          </div>
+          <div class="actions">
+            <button class="btn btn-primary" type="button" onclick="go('quote')">Generate preview</button>
+          </div>
+        </div>
+
+        <div class="quote-shell">
+          <article class="quote-page">
+            <img class="letterhead" src="img/item22.jpeg" alt="SILEX KITCHEN" />
+            <header class="q-header">
+              <div class="q-brand">
+                <div>
+                  <div class="q-company">SILEX KITCHEN</div>
+                  <div class="q-muted">Tax: GST 18% applicable</div>
+                </div>
+              </div>
+              <div class="q-meta">
+                <h2>QUOTATION</h2>
+                <div><strong>Quote No.</strong> QT-DEMO-001</div>
+                <div><strong>Date</strong> <span id="editorDate"></span></div>
+              </div>
+            </header>
+
+            <div class="q-grid">
+              <section class="q-block">
+                <h3>Customer Details</h3>
+                <dl class="q-dl">
+                  <dt>Name</dt><dd>Mr. Vaibhav</dd>
+                  <dt>Email</dt><dd>abc@gmail.com</dd>
+                  <dt>Contact No</dt><dd>9049774400</dd>
+                  <dt>Address</dt><dd>Nashik</dd>
+                </dl>
+              </section>
+              <section class="q-block">
+                <h3>Sales Representative Details</h3>
+                <dl class="q-dl">
+                  <dt>Sales Executive</dt><dd>Shahaji Thorat</dd>
+                  <dt>Designer</dt><dd>Snehal Jadhav</dd>
+                  <dt>Contact No</dt><dd>9623953320</dd>
+                  <dt>Email</dt><dd>sales@silexkitchen.com</dd>
+                </dl>
+              </section>
+            </div>
+
+            <div class="q-options wide">
+              <div>
+                <span>Quotation Type</span>
+                <select class="opt-select" id="optQuoteType">
+                  <option value="Tendam">Tendam</option>
+                  <option value="Basket">Basket</option>
+                </select>
+              </div>
+              <div>
+                <span>Material Type</span>
+                <select class="opt-select" id="optMaterial"></select>
+              </div>
+              <div>
+                <span>Subtype / Finish</span>
+                <select class="opt-select" id="optFinish"></select>
+              </div>
+            </div>
+
+            <table class="q-table editable">
+              <thead>
+                <tr>
+                  <th style="width:2.6rem">Sr.No.</th>
+                  <th style="width:4rem">Image</th>
+                  <th>Description</th>
+                  <th class="q-num" style="width:4.2rem">Qty</th>
+                  <th style="width:3.6rem">Unit</th>
+                  <th class="q-num" style="width:5rem">Rate</th>
+                  <th class="q-num" style="width:6rem">Total</th>
+                  <th style="width:2.2rem"></th>
+                </tr>
+              </thead>
+              <tbody id="editorRows"></tbody>
+            </table>
+
+            <div class="add-product-bar">
+              <button class="btn btn-secondary" type="button" id="addProductBtn">+ Add Product</button>
+            </div>
+
+            <div class="q-summary" id="editorSummary"></div>
+          </article>
+        </div>
+
+        <!-- Add product popup -->
+        <div class="modal-backdrop" id="addModal" hidden>
+          <div class="modal">
+            <h3>Add New Product</h3>
+            <div class="modal-grid">
+              <label>Category
+                <select id="npGroup">
+                  <option value="shutter">Shutter</option>
+                  <option value="cabinet">Cabinet</option>
+                  <option value="drawer" selected>Tendem Drawers / Accessories</option>
+                </select>
+              </label>
+              <label>Description
+                <input type="text" id="npName" placeholder="e.g. Corner Carousel Unit" />
+              </label>
+              <label>Qty
+                <input type="number" id="npQty" min="0" step="0.1" value="1" />
+              </label>
+              <label>Unit
+                <select id="npUnit">
+                  <option>Nos</option>
+                  <option>Sq.Ft.</option>
+                  <option>R.Ft.</option>
+                  <option>Inch</option>
+                  <option>Pair</option>
+                </select>
+              </label>
+              <label>Rate (₹)
+                <input type="number" id="npRate" min="0" step="1" value="0" />
+              </label>
+              <label>Subtype dropdown
+                <select id="npSubtype">
+                  <option value="">None</option>
+                  <option value="drawer">Drawer brands (Hettich / Blum …)</option>
+                  <option value="cutlery">Cutlery (PVC / Wooden …)</option>
+                  <option value="wicker">Wicker (Wooden / PVC)</option>
+                  <option value="pantry">Pantry systems</option>
+                  <option value="rolling">Rolling shutter finishes</option>
+                  <option value="corner">Corner units</option>
+                </select>
+              </label>
+            </div>
+            <div class="modal-actions">
+              <button class="btn btn-secondary" type="button" id="npCancel">Cancel</button>
+              <button class="btn btn-primary" type="button" id="npSave">Add to Quote</button>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- QUOTE DOCUMENT -->
+      <section class="screen" id="screen-quote">
+        <div class="topbar">
+          <div>
+            <div class="eyebrow">Print / PDF layout</div>
+            <h1>Kitchen quotation</h1>
+            <p class="subtitle">Excel-aligned document: customer & sales blocks, category headers, Image · Description · Qty · Unit · Total, bank details & terms.</p>
+          </div>
+          <div class="actions">
+            <button class="btn btn-secondary" type="button" onclick="window.print()">Print / PDF</button>
+            <button class="btn btn-primary" type="button" onclick="go('wizard')">Edit options</button>
+          </div>
+        </div>
+
+        <div class="quote-shell">
+          <!-- PAGE 1: cover letter (like the reference quotation report) -->
+          <article class="quote-page cover">
+            <img class="letterhead" src="img/item22.jpeg" alt="SILEX KITCHEN" />
+
+            <div class="cover-to">
+              <div class="to-label">To,</div>
+              <div class="to-name">Mr. Vaibhav</div>
+              <div class="to-contact">+91 9049774400</div>
+              <div class="to-contact">Nashik</div>
+            </div>
+
+            <div class="cover-intro">
+              <p>SILEX KITCHEN, one of Nashik's leading modular kitchen brands and a trusted interior solutions company, brings years of industry expertise backed by a strong network of partners and associates.</p>
+              <p>We are recognized among the finest modular kitchen manufacturers in the region, known for adhering to stringent quality standards and delivering high-performance, made-to-measure kitchen solutions.</p>
+              <p>Our modern manufacturing setup, equipped with precision machinery, ensures exceptional accuracy, consistency, and timely execution for every project we undertake.</p>
+              <p>We also operate a dedicated experience centre at Dharmbhakti Complex, Ambad Link Road, Nashik, showcasing our complete premium product range.</p>
+              <p>We are proud manufacturers of modular kitchens in BWP Marine Ply and HDFHMR, with finishes including Laminate, Back Painted Acrylic, Back Painted Glass, Acrymica, Ceramic, PU and PVC — engineered with premium hardware from Hettich, Blum, Hafele, Sleek and Ebco to meet diverse design requirements.</p>
+              <p>Every kitchen is built with waterproof, antiskid and soft-close detailing, reflecting our commitment to quality, durability and everyday convenience.</p>
+              <p>We assure you of our best quality, competitive pricing, and professional service.</p>
+              <p>We look forward to building a long-term association with you and request the opportunity to serve your project.</p>
+            </div>
+
+            <footer class="cover-footer">
+              <div class="cover-quote-line">Quote No. : QT-DEMO-001 &nbsp;/&nbsp; Project : Modular Kitchen — Nashik &nbsp;/&nbsp; Date : <span id="coverDate"></span></div>
+              <div class="cover-company">
+                <strong>SILEX KITCHEN</strong><br />
+                Showroom, Dharmbhakti Complex, Opp. Burkule Lawns, Ambad Link Road, Near Symbiosis College, Nashik 422 009<br />
+                Contact No. : 02534032194, 9119439627 &nbsp;·&nbsp; Email : support@silexkitchen.com &nbsp;·&nbsp; Website : www.silexkitchen.com
+              </div>
+              <div class="cover-tagline">Innovative Concept | Quality Product | Fair Price</div>
+            </footer>
+          </article>
+
+          <!-- PAGE 2+: the quotation itself -->
+          <article class="quote-page">
+            <img class="letterhead" src="img/item22.jpeg" alt="SILEX KITCHEN" />
+            <header class="q-header">
+              <div class="q-brand">
+                <div>
+                  <div class="q-company">SILEX KITCHEN</div>
+                  <div class="q-muted">Tax: GST 18% applicable</div>
+                </div>
+              </div>
+              <div class="q-meta">
+                <h2>QUOTATION</h2>
+                <div><strong>Quote No.</strong> QT-DEMO-001</div>
+                <div><strong>Date</strong> <span id="quoteDate"></span></div>
+              </div>
+            </header>
+
+            <div class="q-grid">
+              <section class="q-block">
+                <h3>Customer Details</h3>
+                <dl class="q-dl">
+                  <dt>Name</dt><dd>Mr. Vaibhav</dd>
+                  <dt>Email</dt><dd>abc@gmail.com</dd>
+                  <dt>Contact No</dt><dd>9049774400</dd>
+                  <dt>Address</dt><dd>Nashik</dd>
+                </dl>
+              </section>
+              <section class="q-block">
+                <h3>Sales Representative Details</h3>
+                <dl class="q-dl">
+                  <dt>Sales Executive</dt><dd>Shahaji Thorat</dd>
+                  <dt>Designer</dt><dd>Snehal Jadhav</dd>
+                  <dt>Contact No</dt><dd>9623953320</dd>
+                  <dt>Email</dt><dd>sales@silexkitchen.com</dd>
+                </dl>
+              </section>
+            </div>
+
+            <div class="q-options wide" id="quoteOptions"></div>
+
+            <table class="q-table" id="quoteTable"></table>
+
+            <div class="q-summary" id="quoteSummary"></div>
+
+            <section class="q-terms">
+              <h3>Terms and Conditions</h3>
+              <ol>
+                <li>GST 18% applicable on the above amount.</li>
+                <li>Quotation will be valid for 30 days.</li>
+                <li>Payment Terms : 50% Advance, 40% Before Dispatch, 10% After Fitting.</li>
+                <li>In case of cancellation of order, deposited amount will not be refunded.</li>
+                <li>Design and Colour Combination once finalized cannot be changed.</li>
+                <li>Electrical appliances are not included.</li>
+              </ol>
+            </section>
+
+            <div class="footer-grid">
+              <section class="q-bank">
+                <h3>Bank Details</h3>
+                <div class="bank-flex">
+                  <div class="q-muted">Company Name : SILEX KITCHEN
+Bank Name : ICICI BANK
+Branch : PATHARDI PHATA NASHIK
+Account No : 108705001572
+IFSC CODE : ICIC0001087
+Account Type : CURRENT ACCOUNT</div>
+                  <img class="qr" src="img/item01.jpeg" alt="Payment QR" />
+                </div>
+              </section>
+              <div>
+                <div class="sign">Authorized Signatory</div>
+              </div>
+            </div>
+          </article>
+        </div>
+      </section>
+
+      <!-- PRODUCTS -->
+      <section class="screen" id="screen-products">
+        <div class="topbar">
+          <div>
+            <div class="eyebrow">Catalog</div>
+            <h1>Products</h1>
+            <p class="subtitle">Item codes, units, specs, and categories used on kitchen quotes — ready for images.</p>
+          </div>
+          <div class="actions">
+            <button class="btn btn-primary" type="button" onclick="alert('Demo only — product editor lives in the Quotely desktop app.')">Add product</button>
+          </div>
+        </div>
+        <div class="products-grid" id="productsGrid"></div>
+      </section>
+    </main>
+  </div>
+
+  <script>
+    /**
+     * Left column = material type, right values = subtypes
+     * (from material sub types / FORMAT FOR QUOTE SOFTWARE sheet).
+     */
+    const MATERIAL_TYPES = {
+      "BWP Ply": {
+        subtypeLabel: "Finish subtype",
+        subtypes: [
+          "Laminate",
+          "Back Painted Acrylic",
+          "Back Painted - Glass",
+          "Acrymica",
+          "Ceramic"
+        ]
+      },
+      "HDFHMR": {
+        subtypeLabel: "Finish subtype",
+        subtypes: [
+          "Back Painted - Glass",
+          "PU - Plain",
+          "PU - Designer Shutter",
+          "PVC - Plain",
+          "PVC Designer Shutter"
+        ]
+      }
+    };
+
+    /** Subtype dropdown options — only products listed here get a dropdown. */
+    const SUBTYPES = {
+      drawer: ["Hettich", "Blum", "Hafele", "Sleek", "Ebco", "Power Slide"],
+      cutlery: ["PVC", "Wooden", "Acrylic", "S.S"],
+      wicker: ["Wooden", "PVC"],
+      pantry: ["Glass Pantry", "Metal Pantry", "S.S Pantry", "Drawer Pantry", "Space Pantry"],
+      rolling: ["Glass", "PVC", "Acrylic", "Wooden"],
+      corner: ["Magic Corner", "Swing Tray", "Space Corner"]
+    };
+
+    let LI_ID = 0;
+    function li(group, name, qty, unit, rate, img, subtype) {
+      return {
+        id: ++LI_ID,
+        group,
+        name,
+        qty,
+        unit,
+        rate,
+        img: img || null,
+        subtype: subtype || null,
+        subtypeValue: subtype ? SUBTYPES[subtype][0] : null
+      };
+    }
+
+    /** Exact line items from "quotre format" sheet (TENDAM quote), incl. images. */
+    function defaultItems() {
+      LI_ID = 0;
+      return [
+        // BWP MARINE PLY <FINISH> SHUTTER
+        li("shutter", "Kitchen Platform Shutter Area", 34.8, "Sq.Ft.", 950, "img/item03.jpeg"),
+        li("shutter", "Overhead Unit Shutter Area", 33.5, "Sq.Ft.", 950, "img/item03.jpeg"),
+        li("shutter", "Pantry Unit Shutter Area", 0, "Sq.Ft.", 950, "img/item03.jpeg"),
+        li("shutter", "Vertical Unit Shutter Area", 0, "Sq.Ft.", 950, "img/item03.jpeg"),
+        li("shutter", "Crockery Unit Shutter Area", 0, "Sq.Ft.", 950, "img/item03.jpeg"),
+        li("shutter", "Appliances Unit Shutter Area", 0, "Sq.Ft.", 950, "img/item03.jpeg"),
+        li("shutter", "Loft Unit Shutter Area", 0, "Sq.Ft.", 950, "img/item03.jpeg"),
+        // BWP MARINE PLY CABINET
+        li("cabinet", "Overhead Unit Cabinet Area", 33.5, "Sq.Ft.", 1450, "img/item02.jpeg"),
+        li("cabinet", "Pantry Unit Cabinet Area (450MM)", 0, "Sq.Ft.", 1450, "img/item02.jpeg"),
+        li("cabinet", "Vertical Unit Cabinet Area", 0, "Sq.Ft.", 1450, "img/item02.jpeg"),
+        li("cabinet", "Crockery Unit Cabinet Area", 0, "Sq.Ft.", 1450, "img/item02.jpeg"),
+        li("cabinet", "Rolling Cabinet Area", 0, "Sq.Ft.", 1450, "img/item02.jpeg"),
+        li("cabinet", "Rack Unit Cabinet Area", 0, "Sq.Ft.", 1450, "img/item02.jpeg"),
+        li("cabinet", "Loft Unit Cabinet Area", 0, "Sq.Ft.", 1450, "img/item02.jpeg"),
+        li("cabinet", "Open Unit Area", 0, "R.Ft.", 1200, "img/item02.jpeg"),
+        // Sleek Tendem Drawers
+        li("drawer", "OrgaTray Cutlery Tray", 1, "Nos", 2800, "img/item12.png", "cutlery"),
+        li("drawer", "OrgaTech Inlet (Thali Inlet) (C/S Inlet)", 1, "Nos", 3850, "img/item11.jpeg"),
+        li("drawer", "Tendem Drawer", 1, "Nos", 9630, "img/item26.jpeg", "drawer"),
+        li("drawer", "Pot and Pan Tendem Drawer", 5, "Nos", 10630, "img/item27.jpeg", "drawer"),
+        li("drawer", "Bottle Pull Out", 1, "Nos", 8630, "img/item25.jpeg"),
+        li("drawer", "Wicker Basket", 0, "Nos", 2500, "img/item07.jpeg", "wicker"),
+        li("drawer", "SS Pipe Frame", 7.5, "R.Ft.", 1350, "img/item06.jpeg"),
+        li("drawer", "Carcase", 0, "R.Ft.", 1350, "img/item10.jpeg"),
+        li("drawer", "Antiskid Waterproof Matt", 35, "Sq.Ft.", 80, "img/item13.jpeg"),
+        li("drawer", "J/G Handle", 290, "Inch", 50, "img/item04.jpeg"),
+        li("drawer", "Top-age Handle", 0, "Inch", 60, "img/item19.jpeg"),
+        li("drawer", "Soft Close Hinges", 20, "Pair", 650, "img/item05.jpeg"),
+        li("drawer", "Pantry System (600MM)", 0, "Nos", 25000, "img/item09.jpeg", "pantry"),
+        li("drawer", "Bi-Fold System", 0, "Nos", 12000, "img/item08.jpeg"),
+        li("drawer", "Rolling Shutter", 0, "Nos", 15000, "img/item14.jpeg", "rolling"),
+        li("drawer", "Swing Tray", 0, "Nos", 9500, "img/item17.jpeg", "corner"),
+        li("drawer", "Wet And Dry Dustbin", 0, "Nos", 4500, "img/item18.jpeg"),
+        li("drawer", "Magic Corner", 0, "Nos", 18500, "img/item20.jpeg", "corner")
+      ];
+    }
+
+    const state = {
+      filter: "Open",
+      quoteType: "Tendam",
+      baseMaterial: "BWP Ply",
+      finish: "Laminate",
+      items: defaultItems()
+    };
+
+    const GROUP_ORDER = ["shutter", "cabinet", "drawer"];
+
+    function materialToken() {
+      return state.baseMaterial === "BWP Ply" ? "BWP MARINE PLY" : state.baseMaterial.toUpperCase();
+    }
+
+    function groupLabel(group) {
+      if (group === "shutter") return materialToken() + " " + state.finish.toUpperCase() + " SHUTTER";
+      if (group === "cabinet") return materialToken() + " CABINET";
+      return "SLEEK TENDEM DRAWERS";
+    }
+
+    function computeTotals() {
+      const subtotal = state.items.reduce((sum, item) => sum + item.qty * item.rate, 0);
+      const discount = subtotal * 0.25;
+      // Installation = total shutter Sq.Ft. x Rs.95 (as per design, like the sheet: 68.3 -> 6488.50)
+      const shutterArea = state.items
+        .filter((item) => item.group === "shutter")
+        .reduce((sum, item) => sum + item.qty, 0);
+      const install = shutterArea * 95;
+      const transport = 10000;
+      const grand = subtotal - discount + install + transport;
+      return { subtotal, discount, shutterArea, install, transport, grand };
+    }
+
+    const quotes = [
+      { name: "Mr. Vaibhav", mobile: "9049774400", amount: 190447, location: "Nashik", status: "Sent" },
+      { name: "Mr. Rahul", mobile: "9876543210", amount: 15000, location: "Nashik", status: "Open" },
+      { name: "Mrs. Priya", mobile: "9823123456", amount: 248900, location: "Pune", status: "Done" },
+      { name: "Mr. Amit", mobile: "9011223344", amount: 87500, location: "Nashik", status: "Open" },
+      { name: "Ms. Neha", mobile: "9765432109", amount: 132000, location: "Mumbai", status: "Rejected" },
+      { name: "Mr. Karan", mobile: "9898989898", amount: 210450, location: "Nashik", status: "Sent" },
+      { name: "Mrs. Anjali", mobile: "9123456780", amount: 96500, location: "Aurangabad", status: "Done" }
+    ];
+
+    const products = [
+      { code: "SHT-KP", name: "Kitchen Platform Shutter Area", unit: "Sq.Ft.", price: 950, category: "Shutters", img: "img/item03.jpeg" },
+      { code: "SHT-OH", name: "Overhead Unit Shutter Area", unit: "Sq.Ft.", price: 950, category: "Shutters", img: "img/item03.jpeg" },
+      { code: "CAB-OH", name: "Overhead Unit Cabinet Area", unit: "Sq.Ft.", price: 1450, category: "Cabinets", img: "img/item02.jpeg" },
+      { code: "CAB-PN", name: "Pantry Unit Cabinet Area (450MM)", unit: "Sq.Ft.", price: 1450, category: "Cabinets", img: "img/item02.jpeg" },
+      { code: "TD-ORGA", name: "OrgaTray Cutlery Tray", unit: "Nos", price: 2800, category: "Tendem", img: "img/item12.png" },
+      { code: "TD-POT", name: "Pot and Pan Tendem Drawer", unit: "Nos", price: 10630, category: "Tendem", img: "img/item27.jpeg" },
+      { code: "TD-PIPE", name: "SS Pipe Frame", unit: "R.Ft.", price: 1350, category: "Tendem", img: "img/item06.jpeg" },
+      { code: "TD-JG", name: "J/G Handle", unit: "Inch", price: 50, category: "Tendem", img: "img/item04.jpeg" },
+      { code: "TD-HINGE", name: "Soft Close Hinges", unit: "Pair", price: 650, category: "Tendem", img: "img/item05.jpeg" }
+    ];
+
+    function money(n) {
+      return "₹ " + Number(n).toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    }
+
+    function statusClass(status) {
+      return status.toLowerCase();
+    }
+
+    function go(screen) {
+      document.querySelectorAll(".screen").forEach((el) => el.classList.remove("active"));
+      document.getElementById("screen-" + screen).classList.add("active");
+      document.querySelectorAll("#nav button").forEach((btn) => {
+        btn.classList.toggle("active", btn.dataset.screen === screen);
+      });
+      if (screen === "quote") renderQuote();
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    }
+
+    function renderQuotes() {
+      const q = (document.getElementById("quoteSearch").value || "").trim().toLowerCase();
+      const rows = quotes.filter((row) => {
+        const matchStatus = row.status === state.filter;
+        const hay = (row.name + " " + row.mobile + " " + row.amount + " " + row.location).toLowerCase();
+        return matchStatus && (!q || hay.includes(q));
+      });
+      const body = document.getElementById("quoteRows");
+      body.innerHTML = rows.map((row) => `
+        <tr>
+          <td><strong>${row.name}</strong></td>
+          <td>${row.mobile}</td>
+          <td>${money(row.amount)}</td>
+          <td>${row.location}</td>
+          <td><span class="badge ${statusClass(row.status)}">${row.status}</span></td>
+          <td>
+            <div class="row-actions">
+              <button class="icon-btn" type="button" title="View" onclick="go('quote')">👁</button>
+              <button class="icon-btn" type="button" title="Edit" onclick="go('wizard')">✎</button>
+            </div>
+          </td>
+        </tr>
+      `).join("") || `<tr><td colspan="6" style="color:var(--muted); padding:28px;">No quotations in this status.</td></tr>`;
+    }
+
+    function renderProducts() {
+      document.getElementById("productsGrid").innerHTML = products.map((p) => `
+        <article class="panel product">
+          <div class="img"><img src="${p.img}" alt="" style="width:100%;height:100%;object-fit:contain;" /></div>
+          <div class="meta">${p.code} · ${p.category} · ${p.unit}</div>
+          <h4>${p.name}</h4>
+          <div class="price">${money(p.price)}</div>
+        </article>
+      `).join("");
+    }
+
+    function syncWizardTitle() {
+      document.getElementById("wizardTitle").textContent =
+        "New quotation — " + state.quoteType + " · " + state.baseMaterial + " · " + state.finish;
+    }
+
+    function renderOptionSelects() {
+      const material = MATERIAL_TYPES[state.baseMaterial];
+      const subtypes = material ? material.subtypes : [];
+      if (!subtypes.includes(state.finish)) {
+        state.finish = subtypes[0] || "";
+      }
+      document.getElementById("optQuoteType").value = state.quoteType;
+      document.getElementById("optMaterial").innerHTML = Object.keys(MATERIAL_TYPES)
+        .map((name) => `<option value="${name}"${name === state.baseMaterial ? " selected" : ""}>${name}</option>`)
+        .join("");
+      document.getElementById("optFinish").innerHTML = subtypes
+        .map((name) => `<option value="${name}"${name === state.finish ? " selected" : ""}>${name}</option>`)
+        .join("");
+      syncWizardTitle();
+    }
+
+    function subtypeSelectHtml(item) {
+      if (!item.subtype) return "";
+      const options = SUBTYPES[item.subtype]
+        .map((sub) => `<option value="${sub}"${item.subtypeValue === sub ? " selected" : ""}>${sub}</option>`)
+        .join("");
+      return `<select class="subtype" data-id="${item.id}">${options}</select>`;
+    }
+
+    /** Editable quote builder — exact sheet layout + Rate column + delete. */
+    function renderEditor() {
+      const body = document.getElementById("editorRows");
+      let html = "";
+      GROUP_ORDER.forEach((group) => {
+        const rows = state.items.filter((item) => item.group === group);
+        if (!rows.length) return;
+        html += `<tr class="cat"><td colspan="8">${groupLabel(group)}</td></tr>`;
+        rows.forEach((item, i) => {
+          html += `
+            <tr data-id="${item.id}">
+              <td style="text-align:center">${i + 1}</td>
+              <td><img class="pimg" src="${item.img}" alt="" /></td>
+              <td>
+                <input type="text" data-field="name" data-id="${item.id}" value="${item.name.replace(/"/g, "&quot;")}" />
+                ${subtypeSelectHtml(item)}
+              </td>
+              <td><input type="number" min="0" step="0.1" data-field="qty" data-id="${item.id}" value="${item.qty}" /></td>
+              <td style="text-align:center">${item.unit}</td>
+              <td><input type="number" min="0" step="1" data-field="rate" data-id="${item.id}" value="${item.rate}" /></td>
+              <td style="text-align:right; font-weight:650">${money(item.qty * item.rate)}</td>
+              <td><button class="del" type="button" title="Delete product" data-del="${item.id}">✕</button></td>
+            </tr>`;
+        });
+      });
+      body.innerHTML = html;
+
+      const t = computeTotals();
+      document.getElementById("editorSummary").innerHTML = `
+        <div class="q-summary-row"><span>TOTAL AMOUNT</span><span>${money(t.subtotal)}</span></div>
+        <div class="q-summary-row"><span>Less 25%</span><span>− ${money(t.discount)}</span></div>
+        <div class="q-summary-row"><span>Installation Charges as per design (${t.shutterArea.toFixed(1)} Sq.Ft. × ₹95)</span><span>${money(t.install)}</span></div>
+        <div class="q-summary-row"><span>Transport</span><span>${money(t.transport)}</span></div>
+        <div class="q-summary-row total"><span>TOTAL AMOUNT</span><span>${money(t.grand)}</span></div>
+      `;
+    }
+
+    function renderQuoteOptions() {
+      const blocks = [
+        ["Quotation Type", state.quoteType],
+        ["Material Type", state.baseMaterial],
+        ["Subtype / Finish", state.finish]
+      ];
+      document.getElementById("quoteOptions").innerHTML = blocks
+        .map(([label, value]) => `<div><span>${label}</span><strong>${value}</strong></div>`)
+        .join("");
+    }
+
+    /** Print preview — exact sheet columns: Sr.No | Image | Description | Qty | Unit | Total */
+    function renderQuote() {
+      syncWizardTitle();
+      renderQuoteOptions();
+
+      let html = `
+        <thead>
+          <tr>
+            <th style="width:3rem">Sr.No.</th>
+            <th style="width:4.5rem">Image</th>
+            <th>Description</th>
+            <th class="q-num" style="width:4.5rem">Qty</th>
+            <th style="width:4rem">Unit</th>
+            <th class="q-num" style="width:6rem">Total</th>
+          </tr>
+        </thead><tbody>`;
+
+      GROUP_ORDER.forEach((group) => {
+        const rows = state.items.filter((item) => item.group === group);
+        if (!rows.length) return;
+        html += `<tr class="cat"><td colspan="6">${groupLabel(group)}</td></tr>`;
+        rows.forEach((item, i) => {
+          const desc = item.subtypeValue ? `${item.name} — ${item.subtypeValue}` : item.name;
+          html += `
+            <tr>
+              <td>${i + 1}</td>
+              <td><img src="${item.img}" alt="" style="width:44px;height:44px;object-fit:contain;display:block;margin:0 auto;" /></td>
+              <td>${desc}</td>
+              <td class="q-num">${item.qty}</td>
+              <td>${item.unit}</td>
+              <td class="q-num">${money(item.qty * item.rate)}</td>
+            </tr>`;
+        });
+      });
+      html += "</tbody>";
+      document.getElementById("quoteTable").innerHTML = html;
+
+      const t = computeTotals();
+      document.getElementById("quoteSummary").innerHTML = `
+        <div class="q-summary-row"><span>TOTAL AMOUNT</span><span>${money(t.subtotal)}</span></div>
+        <div class="q-summary-row"><span>Less 25%</span><span>− ${money(t.discount)}</span></div>
+        <div class="q-summary-row"><span>Installation Charges as per design</span><span>${money(t.install)}</span></div>
+        <div class="q-summary-row"><span>Transport</span><span>${money(t.transport)}</span></div>
+        <div class="q-summary-row total"><span>TOTAL AMOUNT</span><span>${money(t.grand)}</span></div>
+      `;
+    }
+
+    document.getElementById("nav").addEventListener("click", (e) => {
+      const btn = e.target.closest("button[data-screen]");
+      if (btn) go(btn.dataset.screen);
+    });
+
+    document.getElementById("statusChips").addEventListener("click", (e) => {
+      const btn = e.target.closest("button[data-filter]");
+      if (!btn) return;
+      state.filter = btn.dataset.filter;
+      document.querySelectorAll("#statusChips .status-chip").forEach((el) => el.classList.remove("active"));
+      btn.classList.add("active");
+      renderQuotes();
+    });
+
+    document.getElementById("quoteSearch").addEventListener("input", renderQuotes);
+
+    document.getElementById("optQuoteType").addEventListener("change", (e) => {
+      state.quoteType = e.target.value;
+      syncWizardTitle();
+    });
+
+    document.getElementById("optMaterial").addEventListener("change", (e) => {
+      state.baseMaterial = e.target.value;
+      renderOptionSelects();
+      renderEditor();
+    });
+
+    document.getElementById("optFinish").addEventListener("change", (e) => {
+      state.finish = e.target.value;
+      syncWizardTitle();
+      renderEditor();
+    });
+
+    // --- Add product popup ---
+    const addModal = document.getElementById("addModal");
+    const GROUP_DEFAULT_IMG = {
+      shutter: "img/item03.jpeg",
+      cabinet: "img/item02.jpeg",
+      drawer: "img/item26.jpeg"
+    };
+
+    document.getElementById("addProductBtn").addEventListener("click", () => {
+      document.getElementById("npName").value = "";
+      document.getElementById("npQty").value = "1";
+      document.getElementById("npRate").value = "0";
+      document.getElementById("npSubtype").value = "";
+      addModal.hidden = false;
+      document.getElementById("npName").focus();
+    });
+
+    document.getElementById("npCancel").addEventListener("click", () => {
+      addModal.hidden = true;
+    });
+
+    addModal.addEventListener("click", (e) => {
+      if (e.target === addModal) addModal.hidden = true;
+    });
+
+    document.getElementById("npSave").addEventListener("click", () => {
+      const name = document.getElementById("npName").value.trim();
+      if (!name) {
+        document.getElementById("npName").focus();
+        return;
+      }
+      const group = document.getElementById("npGroup").value;
+      const subtype = document.getElementById("npSubtype").value || null;
+      state.items.push(
+        li(
+          group,
+          name,
+          Number(document.getElementById("npQty").value) || 0,
+          document.getElementById("npUnit").value,
+          Number(document.getElementById("npRate").value) || 0,
+          GROUP_DEFAULT_IMG[group],
+          subtype
+        )
+      );
+      addModal.hidden = true;
+      renderEditor();
+    });
+
+    const editorRows = document.getElementById("editorRows");
+
+    // Edit rates / qty / details in place (re-render totals only on change to keep focus).
+    editorRows.addEventListener("input", (e) => {
+      const input = e.target.closest("input[data-field]");
+      if (!input) return;
+      const item = state.items.find((row) => row.id === Number(input.dataset.id));
+      if (!item) return;
+      if (input.dataset.field === "name") {
+        item.name = input.value;
+      } else {
+        item[input.dataset.field] = Number(input.value) || 0;
+        const totalCell = input.closest("tr").children[6];
+        totalCell.textContent = money(item.qty * item.rate);
+        const t = computeTotals();
+        document.getElementById("editorSummary").innerHTML = `
+          <div class="q-summary-row"><span>TOTAL AMOUNT</span><span>${money(t.subtotal)}</span></div>
+          <div class="q-summary-row"><span>Less 25%</span><span>− ${money(t.discount)}</span></div>
+          <div class="q-summary-row"><span>Installation Charges as per design (${t.shutterArea.toFixed(1)} Sq.Ft. × ₹95)</span><span>${money(t.install)}</span></div>
+          <div class="q-summary-row"><span>Transport</span><span>${money(t.transport)}</span></div>
+          <div class="q-summary-row total"><span>TOTAL AMOUNT</span><span>${money(t.grand)}</span></div>
+        `;
+      }
+    });
+
+    // Subtype dropdown selections.
+    editorRows.addEventListener("change", (e) => {
+      const select = e.target.closest("select.subtype");
+      if (!select) return;
+      const item = state.items.find((row) => row.id === Number(select.dataset.id));
+      if (item) item.subtypeValue = select.value;
+    });
+
+    // Delete product rows.
+    editorRows.addEventListener("click", (e) => {
+      const btn = e.target.closest("button[data-del]");
+      if (!btn) return;
+      state.items = state.items.filter((row) => row.id !== Number(btn.dataset.del));
+      renderEditor();
+    });
+
+    const today = new Date();
+    const dateText =
+      String(today.getDate()).padStart(2, "0") + "." +
+      String(today.getMonth() + 1).padStart(2, "0") + "." +
+      today.getFullYear();
+    document.getElementById("quoteDate").textContent = dateText;
+    document.getElementById("editorDate").textContent = dateText;
+    document.getElementById("coverDate").textContent = dateText;
+
+    renderOptionSelects();
+    renderEditor();
+
+    const hashScreen = location.hash.replace("#", "");
+    if (["dashboard", "wizard", "quote", "products"].includes(hashScreen)) {
+      go(hashScreen);
+    }
+    renderQuotes();
+    renderProducts();
+    renderQuote();
+  </script>
+</body>
+</html>

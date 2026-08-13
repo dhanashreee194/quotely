@@ -5,7 +5,12 @@ import Database from 'better-sqlite3'
 import { drizzle, BetterSQLite3Database } from 'drizzle-orm/better-sqlite3'
 import { migrate } from 'drizzle-orm/better-sqlite3/migrator'
 import * as schema from './schema'
-import { ensureDefaultItemFormatColumns, seedDefaultQuotationTemplate } from './seed'
+import {
+  ensureDefaultItemFormatColumns,
+  ensureKitchenQuoteCustomFields,
+  seedClientDemoPrototype,
+  seedDefaultQuotationTemplate
+} from './seed'
 
 let db: BetterSQLite3Database<typeof schema> | null = null
 let sqlite: Database.Database | null = null
@@ -41,6 +46,8 @@ export function initDatabase(): BetterSQLite3Database<typeof schema> {
   migrate(db, { migrationsFolder: getMigrationsFolder() })
   seedDefaultQuotationTemplate(db)
   ensureDefaultItemFormatColumns(db)
+  ensureKitchenQuoteCustomFields(db)
+  seedClientDemoPrototype(db)
 
   return db
 }

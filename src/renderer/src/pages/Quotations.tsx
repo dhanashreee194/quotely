@@ -33,6 +33,19 @@ import { useQuotationsStore } from '../stores/quotationsStore'
 
 const SEARCH_DEBOUNCE_MS = 300
 
+/** UXPin-style pipeline chips mapped onto Quotely statuses. */
+const STATUS_PIPELINE: Array<{
+  label: string
+  status: QuotationStatus
+  bg: string
+  color: string
+}> = [
+  { label: 'Open', status: 'Draft', bg: '#F6E27A', color: '#5C4B00' },
+  { label: 'Sent', status: 'Sent', bg: '#F4A261', color: '#5C2E00' },
+  { label: 'Done', status: 'Accepted', bg: '#2E9E5B', color: '#FFFFFF' },
+  { label: 'Rejected', status: 'Rejected', bg: '#E35D6A', color: '#FFFFFF' }
+]
+
 export default function QuotationsPage(): React.JSX.Element {
   const navigate = useNavigate()
   const theme = useTheme()
@@ -117,6 +130,32 @@ export default function QuotationsPage(): React.JSX.Element {
         </>
       }
     >
+      <Stack direction="row" spacing={1} useFlexGap sx={{ flexWrap: 'wrap', justifyContent: 'center' }}>
+        {STATUS_PIPELINE.map((tab) => {
+          const active = status === tab.status
+          return (
+            <Button
+              key={tab.label}
+              onClick={() => setStatus(active ? '' : tab.status)}
+              sx={{
+                minWidth: 100,
+                borderRadius: 999,
+                px: 2.5,
+                py: 0.75,
+                fontWeight: 700,
+                bgcolor: tab.bg,
+                color: tab.color,
+                opacity: status && !active ? 0.55 : 1,
+                boxShadow: active ? '0 0 0 2px rgba(27,77,62,0.35)' : 'none',
+                '&:hover': { bgcolor: tab.bg, filter: 'brightness(0.97)' }
+              }}
+            >
+              {tab.label}
+            </Button>
+          )
+        })}
+      </Stack>
+
       <Paper variant="outlined" sx={{ p: 2 }}>
         <Stack spacing={2}>
           <Typography variant="subtitle1">Filters</Typography>

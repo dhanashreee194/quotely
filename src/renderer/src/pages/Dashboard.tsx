@@ -167,6 +167,19 @@ export default function DashboardPage(): React.JSX.Element {
     navigate('/quotations')
   }
 
+  const openDemoQuote = async (): Promise<void> => {
+    try {
+      const rows = await window.api.quotations.list({ search: 'QT-DEMO' })
+      if (rows[0]) {
+        navigate(`/quotations/${rows[0].id}/preview`)
+        return
+      }
+      navigate('/quotations')
+    } catch {
+      navigate('/quotations')
+    }
+  }
+
   const statusChartData = useMemo(
     () => (summary?.byStatus ?? []).filter((row) => row.count > 0),
     [summary]
@@ -196,8 +209,19 @@ export default function DashboardPage(): React.JSX.Element {
   return (
     <PageShell
       title="Dashboard"
-      subtitle="Overview of quotations, pipeline value, and recent activity."
+      subtitle="Client demo ready — kitchen quote format with sample catalog and quotation."
     >
+      <Alert
+        severity="info"
+        action={
+          <Button color="inherit" size="small" onClick={() => void openDemoQuote()}>
+            Preview sample quote
+          </Button>
+        }
+      >
+        Sample kitchen quotation (Tendam / BWP / Laminate) is seeded for demos — matching the Excel
+        format sheet and UXPin quote flow.
+      </Alert>
       <Grid container spacing={1.5} sx={{ alignItems: 'stretch' }}>
         <Grid size={{ xs: 12, sm: 6, md: 3 }}>
           <Button

@@ -1,5 +1,6 @@
 import { and, asc, eq, gt, lt, ne, sql } from 'drizzle-orm'
 import {
+  DEFAULT_CUSTOM_FIELDS,
   DEFAULT_ITEM_COLUMNS,
   DEFAULT_SECTION_BLUEPRINT,
   isReservedQuotationFieldKey
@@ -227,12 +228,50 @@ export async function createQuotationTemplate(
         displayOrder: column.displayOrder,
         width: column.width,
         required: column.required,
-        visible: true,
-        printInclude: true,
+        visible: column.visible,
+        printInclude: column.printInclude,
         participatesInCalc: column.participatesInCalc
       })
       .run()
   }
+
+  const createdSections = db
+    .select()
+    .from(templateSections)
+    .where(eq(templateSections.templateId, templateId))
+    .all()
+  const sectionByType = new Map(createdSections.map((section) => [section.type, section]))
+  DEFAULT_CUSTOM_FIELDS.forEach((field, index) => {
+    const section = sectionByType.get(field.sectionType)
+    if (!section) return
+    const fieldResult = db
+      .insert(customFieldDefinitions)
+      .values({
+        templateId,
+        sectionId: section.id,
+        fieldKey: field.fieldKey,
+        label: field.label,
+        type: field.type,
+        required: field.required,
+        defaultValue: field.defaultValue ?? null,
+        displayOrder: index,
+        printVisible: field.printVisible,
+        readOnly: false,
+        config: null
+      })
+      .run()
+    const fieldId = Number(fieldResult.lastInsertRowid)
+    field.options?.forEach((option, optionIndex) => {
+      db.insert(customFieldOptions)
+        .values({
+          fieldDefinitionId: fieldId,
+          label: option.label,
+          value: option.value,
+          displayOrder: optionIndex
+        })
+        .run()
+    })
+  })
 
   const row = db
     .select()
