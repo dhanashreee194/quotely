@@ -47,14 +47,23 @@ export function seedDefaultUsers(): void {
 export async function login(username: string, password: string): Promise<SessionUser> {
   const db = getDatabase()
   const normalized = username.trim().toLowerCase()
-  const row = db.select().from(users).where(eq(users.username, normalized)).get()
+  let row = db.select().from(users).where(eq(users.username, normalized)).get()
   if (!row) {
-    throw new Error('Invalid username or password')
+    // Self-heal: restore the default accounts if they are missing (e.g. an
+    // interrupted first run), then retry the lookup once.
+    seedDefaultUsers()
+    row = db.select().from(users).where(eq(users.username, normalized)).get()
   }
-  const provided = Buffer.from(hashPassword(normalized, password))
+  if (!row) {
+    const known = db.select({ username: users.username }).from(users).all()
+    throw new Error(
+      `Unknown username "${normalized}". Available users: ${known.map((u) => u.username).join(', ')}`
+    )
+  }
+  const provided = Buffer.from(hashPassword(normalized, password.trim()))
   const stored = Buffer.from(row.passwordHash)
   if (provided.length !== stored.length || !timingSafeEqual(provided, stored)) {
-    throw new Error('Invalid username or password')
+    throw new Error('Incorrect password (check capital letters — the password is all lowercase)')
   }
   currentUser = toSessionUser(row)
   return currentUser

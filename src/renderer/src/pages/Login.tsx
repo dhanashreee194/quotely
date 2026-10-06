@@ -23,7 +23,9 @@ export default function LoginPage(): React.JSX.Element {
       const user = await window.api.auth.login(username, password)
       setUser(user)
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Login failed')
+      const raw = err instanceof Error ? err.message : 'Login failed'
+      // Electron prefixes IPC errors with "Error invoking remote method 'auth:login': Error: "
+      setError(raw.split(/Error: /).pop() ?? raw)
     } finally {
       setBusy(false)
     }
