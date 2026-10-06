@@ -30,6 +30,8 @@ export type QuotationDocumentModel = {
   letterheadDataUrl: string | null
   /** Bank / payment QR code shown next to bank details (null when not installed). */
   bankQrDataUrl: string | null
+  /** QR codes printed at the end of the document, below the terms & conditions. */
+  documentQrs: Array<{ label: string; dataUrl: string }>
   /** Relative asset path → data URL for line-item / product images. */
   assetDataUrls: Record<string, string>
 }

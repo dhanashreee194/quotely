@@ -266,6 +266,51 @@
   padding: 2px 0;
 }
 
+.qd-tnc-qrs {
+  margin-top: 20px;
+  border-top: 1px solid var(--qd-line);
+  padding-top: 10px;
+  page-break-inside: avoid;
+}
+
+.qd-tnc-qrs h2 {
+  font-size: 10.5pt;
+  color: var(--qd-accent);
+  letter-spacing: 0.05em;
+  margin: 0 0 8px;
+  text-align: center;
+}
+
+.qd-tnc-qr-grid {
+  display: flex;
+  justify-content: center;
+  gap: 28px;
+}
+
+.qd-tnc-qr-grid figure {
+  margin: 0;
+  text-align: center;
+}
+
+.qd-tnc-qr-grid img {
+  height: 42mm;
+  width: auto;
+  max-width: 55mm;
+  object-fit: contain;
+  border: 1px solid var(--qd-line);
+  padding: 2px;
+  background: #fff;
+}
+
+.qd-tnc-qr-grid figcaption {
+  margin-top: 4px;
+  font-size: 8pt;
+  font-weight: 700;
+  color: var(--qd-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
 .qd-bank-flex {
   display: flex;
   gap: 12px;

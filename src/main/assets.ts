@@ -6,6 +6,9 @@ import { eq } from 'drizzle-orm'
 import logoAsset from '../../resources/logo.png?asset'
 import letterheadAsset from '../../resources/kitchen/letterhead.jpeg?asset'
 import bankQrAsset from '../../resources/kitchen/bank-qr.jpeg?asset'
+import addressQrAsset from '../../resources/kitchen/address-qr.jpg?asset'
+import iciciQrAsset from '../../resources/kitchen/icici-qr.jpg?asset'
+import gpayQrAsset from '../../resources/kitchen/gpay-qr.jpg?asset'
 import shutterAsset from '../../resources/kitchen/shutter.jpeg?asset'
 import cabinetAsset from '../../resources/kitchen/cabinet.jpeg?asset'
 import cutleryTrayAsset from '../../resources/kitchen/cutlery-tray.png?asset'
@@ -85,6 +88,13 @@ export const LETTERHEAD_RELATIVE = 'branding/letterhead.jpeg'
 /** Relative asset path of the bank/payment QR code shown next to bank details. */
 export const BANK_QR_RELATIVE = 'branding/bank-qr.jpeg'
 
+/** QR codes printed at the end of the quotation, below the terms & conditions. */
+export const DOCUMENT_QRS: Array<{ relative: string; source: string; label: string }> = [
+  { relative: 'branding/address-qr.jpg', source: addressQrAsset, label: 'Scan for Location' },
+  { relative: 'branding/icici-qr.jpg', source: iciciQrAsset, label: 'ICICI Bank — Scan & Pay' },
+  { relative: 'branding/gpay-qr.jpg', source: gpayQrAsset, label: 'Google Pay — Scan & Pay' }
+]
+
 /** Bundled kitchen product images: resources/kitchen/<file> → assets/products/kitchen/<file>. */
 const KITCHEN_IMAGE_SOURCES: Record<string, string> = {
   'shutter.jpeg': shutterAsset,
@@ -141,6 +151,12 @@ export function installBundledKitchenAssets(): void {
   const bankQrDest = resolveAssetPath(BANK_QR_RELATIVE)
   if (!existsSync(bankQrDest)) {
     copyFileSync(bankQrAsset, bankQrDest)
+  }
+  for (const qr of DOCUMENT_QRS) {
+    const destination = resolveAssetPath(qr.relative)
+    if (!existsSync(destination)) {
+      copyFileSync(qr.source, destination)
+    }
   }
 }
 

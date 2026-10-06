@@ -171,6 +171,7 @@ export default function QuotationDocument({ model }: Props): React.JSX.Element {
     signatureDataUrl,
     letterheadDataUrl,
     bankQrDataUrl,
+    documentQrs,
     assetDataUrls
   } = model
   const currency = quotation.currency || 'INR'
@@ -608,6 +609,20 @@ export default function QuotationDocument({ model }: Props): React.JSX.Element {
             </div>
           </div>
         </div>
+
+        {documentQrs.length > 0 && (
+          <div className="qd-tnc-qrs">
+            <h2>SCAN &amp; CONNECT</h2>
+            <div className="qd-tnc-qr-grid">
+              {documentQrs.map((qr) => (
+                <figure key={qr.label}>
+                  <img src={qr.dataUrl} alt={qr.label} />
+                  <figcaption>{qr.label}</figcaption>
+                </figure>
+              ))}
+            </div>
+          </div>
+        )}
       </article>
     </div>
   )

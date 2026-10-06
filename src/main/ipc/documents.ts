@@ -5,7 +5,7 @@ import { is } from '@electron-toolkit/utils'
 import { eq, asc } from 'drizzle-orm'
 import { buildQuotationPdfFilename, type QuotationDocumentModel } from '../../shared/document'
 import { IpcChannels } from '../../shared/ipc'
-import { BANK_QR_RELATIVE, LETTERHEAD_RELATIVE, readAssetDataUrl } from '../assets'
+import { BANK_QR_RELATIVE, DOCUMENT_QRS, LETTERHEAD_RELATIVE, readAssetDataUrl } from '../assets'
 import { getDatabase } from '../db'
 import { customers, itemColumnDefinitions, termsTemplates } from '../db/schema'
 import { getCompanyProfile } from './company'
@@ -88,6 +88,10 @@ export async function getQuotationDocumentModel(
     signatureDataUrl: company?.signaturePath ? readAssetDataUrl(company.signaturePath) : null,
     letterheadDataUrl: readAssetDataUrl(LETTERHEAD_RELATIVE),
     bankQrDataUrl: readAssetDataUrl(BANK_QR_RELATIVE),
+    documentQrs: DOCUMENT_QRS.flatMap((qr) => {
+      const dataUrl = readAssetDataUrl(qr.relative)
+      return dataUrl ? [{ label: qr.label, dataUrl }] : []
+    }),
     assetDataUrls
   }
 }
