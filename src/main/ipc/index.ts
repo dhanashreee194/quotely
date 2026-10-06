@@ -21,6 +21,7 @@ import type {
   TermsTemplateInput
 } from '../../shared/types'
 import { getAssetDataUrl, pickImage } from './assets'
+import { getCurrentUser, listUsers, login, logout, peekUserQuotationNumber } from './auth'
 import {
   createChargeRule,
   listChargeRules,
@@ -97,6 +98,13 @@ import {
 } from './termsTemplates'
 
 export function registerIpcHandlers(): void {
+  ipcMain.handle(IpcChannels.authLogin, (_event, username: string, password: string) =>
+    login(username, password)
+  )
+  ipcMain.handle(IpcChannels.authLogout, () => logout())
+  ipcMain.handle(IpcChannels.authCurrent, () => getCurrentUser())
+  ipcMain.handle(IpcChannels.authList, () => listUsers())
+
   ipcMain.handle(IpcChannels.settingsGet, (_event, key: string) => getSetting(key))
   ipcMain.handle(IpcChannels.settingsSet, (_event, key: string, value: string) =>
     setSetting(key, value)
@@ -230,7 +238,10 @@ export function registerIpcHandlers(): void {
   ipcMain.handle(IpcChannels.numberingUpdate, (_event, patch: Partial<NumberingConfig>) =>
     updateNumberingConfig(patch)
   )
-  ipcMain.handle(IpcChannels.numberingPeek, () => peekNextQuotationNumber())
+  ipcMain.handle(
+    IpcChannels.numberingPeek,
+    () => peekUserQuotationNumber() ?? peekNextQuotationNumber()
+  )
 
   ipcMain.handle(IpcChannels.documentsGetModel, (_event, quotationId: number) =>
     getQuotationDocumentModel(quotationId)

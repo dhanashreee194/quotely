@@ -7,6 +7,24 @@ export const settings = sqliteTable('settings', {
   value: text('value').notNull()
 })
 
+export const users = sqliteTable(
+  'users',
+  {
+    id: integer('id').primaryKey({ autoIncrement: true }),
+    username: text('username').notNull(),
+    displayName: text('display_name').notNull(),
+    passwordHash: text('password_hash').notNull(),
+    quotePrefix: text('quote_prefix').notNull(),
+    nextSequence: integer('next_sequence').notNull().default(1),
+    isAdmin: integer('is_admin', { mode: 'boolean' }).notNull().default(false),
+    createdAt: text('created_at').notNull()
+  },
+  (table) => [
+    uniqueIndex('users_username_uidx').on(table.username),
+    uniqueIndex('users_quote_prefix_uidx').on(table.quotePrefix)
+  ]
+)
+
 export const companyProfile = sqliteTable('company_profile', {
   id: integer('id').primaryKey().default(1),
   name: text('name').notNull().default(''),
@@ -239,6 +257,7 @@ export const auditLog = sqliteTable(
 )
 
 export type Setting = typeof settings.$inferSelect
+export type UserRow = typeof users.$inferSelect
 export type CompanyProfile = typeof companyProfile.$inferSelect
 export type Customer = typeof customers.$inferSelect
 export type Product = typeof products.$inferSelect

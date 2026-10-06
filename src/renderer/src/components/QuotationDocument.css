@@ -60,8 +60,8 @@
 }
 
 .qd-cover-to {
-  margin: 10px 0 16px;
-  padding: 12px 16px;
+  margin: 8px 0 10px;
+  padding: 8px 14px;
   border-left: 4px solid var(--qd-accent);
   background: #f2f7f4;
   max-width: 320px;
@@ -88,12 +88,12 @@
 }
 
 .qd-cover-intro {
-  font-size: 10pt;
-  line-height: 1.6;
+  font-size: 9.5pt;
+  line-height: 1.45;
 }
 
 .qd-cover-intro p {
-  margin: 0 0 10px;
+  margin: 0 0 7px;
 }
 
 .qd-cover-footer {
@@ -122,6 +122,148 @@
   letter-spacing: 0.06em;
   text-transform: uppercase;
   color: #8c2f7c;
+}
+
+/* ---- About pages (company profile document, pages 1–2) ---- */
+.qd-about-title {
+  text-align: center;
+  margin-bottom: 8px;
+}
+
+.qd-about-title h1 {
+  margin: 0 0 4px;
+  font-size: 16pt;
+  letter-spacing: 0.08em;
+  color: var(--qd-accent);
+}
+
+.qd-about-tagline {
+  font-size: 8.5pt;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  color: #8c2f7c;
+  margin-bottom: 6px;
+}
+
+.qd-about-meta {
+  display: inline-block;
+  font-size: 8.5pt;
+  font-weight: 700;
+  color: var(--qd-ink);
+  border: 1px solid var(--qd-line);
+  background: #f2f7f4;
+  padding: 4px 10px;
+}
+
+.qd-about-heading {
+  font-size: 10.5pt;
+  color: var(--qd-accent);
+  letter-spacing: 0.04em;
+  margin: 10px 0 5px;
+  border-bottom: 1px solid var(--qd-line);
+  padding-bottom: 2px;
+}
+
+.qd-about-list {
+  margin: 2px 0 6px;
+  padding-left: 1.4rem;
+}
+
+.qd-about-list li {
+  margin-bottom: 2px;
+}
+
+.qd-about-promises {
+  font-weight: 700;
+  color: var(--qd-accent);
+  border-left: 4px solid var(--qd-accent);
+  background: #f2f7f4;
+  padding: 8px 12px;
+}
+
+.qd-about-slogan {
+  margin-top: 28px;
+  text-align: center;
+  font-size: 15pt;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+  color: #8c2f7c;
+}
+
+/* ---- Terms & Conditions pages ---- */
+.qd-tnc-title {
+  margin: 4px 0 10px;
+  font-size: 13pt;
+  letter-spacing: 0.05em;
+  color: var(--qd-accent);
+  text-align: center;
+}
+
+.qd-tnc-company {
+  border: 1px solid var(--qd-line);
+  background: #f7faf8;
+  padding: 8px 10px;
+  margin-bottom: 12px;
+}
+
+.qd-tnc-body {
+  font-size: 9.5pt;
+  line-height: 1.5;
+}
+
+.qd-tnc-clause {
+  page-break-inside: avoid;
+  margin-bottom: 8px;
+}
+
+.qd-tnc-clause h2 {
+  font-size: 10pt;
+  color: var(--qd-accent);
+  margin: 10px 0 4px;
+}
+
+.qd-tnc-clause p {
+  margin: 0 0 4px;
+}
+
+.qd-tnc-clause ul {
+  margin: 2px 0 6px;
+  padding-left: 1.4rem;
+}
+
+.qd-tnc-acceptance {
+  margin-top: 18px;
+  border-top: 2px solid var(--qd-accent);
+  padding-top: 10px;
+  page-break-inside: avoid;
+}
+
+.qd-tnc-acceptance h2 {
+  font-size: 10.5pt;
+  color: var(--qd-accent);
+  margin: 0 0 8px;
+}
+
+.qd-tnc-sign-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px 24px;
+}
+
+.qd-tnc-sign-grid span {
+  display: block;
+  font-size: 8pt;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--qd-muted);
+}
+
+.qd-tnc-sign-grid strong {
+  display: block;
+  min-height: 1.6em;
+  border-bottom: 1px solid var(--qd-ink);
+  font-size: 10pt;
+  padding: 2px 0;
 }
 
 .qd-bank-flex {
@@ -477,6 +619,10 @@
   .qd-cover {
     margin-bottom: 20px;
   }
+
+  .qd-tnc {
+    margin-top: 20px;
+  }
 }
 
 @media screen and (max-width: 900px) {
@@ -524,6 +670,10 @@
   .qd-cover {
     page-break-after: always;
     min-height: 96vh;
+  }
+
+  .qd-tnc {
+    page-break-before: always;
   }
 
   .qd-table thead {

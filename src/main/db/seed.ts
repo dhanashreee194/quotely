@@ -2,12 +2,14 @@ import type { BetterSQLite3Database } from 'drizzle-orm/better-sqlite3'
 import { asc, eq } from 'drizzle-orm'
 import { calculateQuotationTotals } from '../../shared/calc'
 import {
+  BASKET_CATALOG,
   DEFAULT_CUSTOM_FIELDS,
   DEFAULT_ITEM_COLUMNS,
   DEFAULT_SECTION_BLUEPRINT,
   KITCHEN_CATALOG,
   KITCHEN_SUBTYPES_BY_CODE,
-  kitchenGroupLabel
+  kitchenGroupLabel,
+  type KitchenCatalogItem
 } from '../../shared/metadata'
 import * as schema from './schema'
 import {
@@ -27,7 +29,16 @@ import {
   termsTemplates
 } from './schema'
 
-const CLIENT_DEMO_SETTING = 'client_demo_v3'
+const CLIENT_DEMO_SETTING = 'client_demo_v4'
+
+/** Combined Tendam + Basket catalog, de-duplicated by itemCode (Tendam wins). */
+function combinedKitchenCatalog(): KitchenCatalogItem[] {
+  const byCode = new Map<string, KitchenCatalogItem>()
+  for (const item of [...KITCHEN_CATALOG, ...BASKET_CATALOG]) {
+    if (!byCode.has(item.itemCode)) byCode.set(item.itemCode, item)
+  }
+  return [...byCode.values()]
+}
 
 function now(): string {
   return new Date().toISOString()
@@ -357,7 +368,7 @@ function seedTermsIfEmpty(db: BetterSQLite3Database<typeof schema>): void {
 export function ensureKitchenProductImages(db: BetterSQLite3Database<typeof schema>): void {
   const catalog = db.select().from(products).all()
   const byCode = new Map(catalog.map((row) => [row.itemCode, row]))
-  for (const item of KITCHEN_CATALOG) {
+  for (const item of combinedKitchenCatalog()) {
     const existing = byCode.get(item.itemCode)
     if (!existing) continue
     const imagePath = `products/kitchen/${item.image}`
@@ -368,6 +379,21 @@ export function ensureKitchenProductImages(db: BetterSQLite3Database<typeof sche
         category: existing.category || kitchenGroupLabel(item.group),
         updatedAt: now()
       })
+      .where(eq(products.id, existing.id))
+      .run()
+  }
+}
+
+/** One-time sync of catalog rates/units to the PRICE LIST sheet values. */
+function syncKitchenCatalogPrices(db: BetterSQLite3Database<typeof schema>): void {
+  const catalog = db.select().from(products).all()
+  const byCode = new Map(catalog.map((row) => [row.itemCode, row]))
+  for (const item of combinedKitchenCatalog()) {
+    const existing = byCode.get(item.itemCode)
+    if (!existing) continue
+    if (existing.standardPrice === item.rate && existing.unit === item.unit) continue
+    db.update(products)
+      .set({ standardPrice: item.rate, unit: item.unit, updatedAt: now() })
       .where(eq(products.id, existing.id))
       .run()
   }
@@ -438,7 +464,7 @@ export function seedClientDemoPrototype(db: BetterSQLite3Database<typeof schema>
 
   const catalogBefore = db.select().from(products).all()
   const existingCodes = new Set(catalogBefore.map((row) => row.itemCode))
-  for (const item of KITCHEN_CATALOG) {
+  for (const item of combinedKitchenCatalog()) {
     if (existingCodes.has(item.itemCode)) continue
     db.insert(products)
       .values({
@@ -457,6 +483,7 @@ export function seedClientDemoPrototype(db: BetterSQLite3Database<typeof schema>
       .run()
   }
   ensureKitchenProductImages(db)
+  syncKitchenCatalogPrices(db)
 
   const template =
     db

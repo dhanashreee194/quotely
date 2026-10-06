@@ -2,6 +2,12 @@ import type { ItemColumnDefinition, QuotationItem } from '../../../shared/types'
 import type { PrintField, QuotationDocumentModel } from '../../../shared/document'
 import { kitchenGroupLabel } from '../../../shared/metadata'
 import { Fragment } from 'react'
+import {
+  ABOUT_PAGE_ONE,
+  ABOUT_PAGE_TWO,
+  ABOUT_TAGLINE,
+  MODULAR_KITCHEN_TERMS
+} from './silexDocContent'
 import './QuotationDocument.css'
 
 type Props = {
@@ -84,7 +90,9 @@ function renderItemCell(
   if (column.columnKey === 'description') {
     const description = String(item.columnValues?.description ?? '—')
     const specs = String(item.columnValues?.specs ?? '').trim()
-    const subtype = String(item.columnValues?.subtype ?? '').trim()
+    const subtypeRaw = String(item.columnValues?.subtype ?? '').trim()
+    const subtype =
+      subtypeRaw && !description.toLowerCase().includes(subtypeRaw.toLowerCase()) ? subtypeRaw : ''
     return (
       <div className="qd-desc">
         <div>
@@ -190,64 +198,108 @@ export default function QuotationDocument({ model }: Props): React.JSX.Element {
   const groups = groupItems(quotation.items)
   const colSpan = printColumns.length + 1
 
-  const coverIntro = [
-    `${companyName}, one of Nashik's leading modular kitchen brands and a trusted interior solutions company, brings years of industry expertise backed by a strong network of partners and associates.`,
-    'We are recognized among the finest modular kitchen manufacturers in the region, known for adhering to stringent quality standards and delivering high-performance, made-to-measure kitchen solutions.',
-    'Our modern manufacturing setup, equipped with precision machinery, ensures exceptional accuracy, consistency, and timely execution for every project we undertake.',
-    'We are proud manufacturers of modular kitchens in BWP Marine Ply and HDFHMR, with finishes including Laminate, Back Painted Acrylic, Back Painted Glass, Acrymica, Ceramic, PU and PVC — engineered with premium hardware from Hettich, Blum, Hafele, Sleek and Ebco to meet diverse design requirements.',
-    'Every kitchen is built with waterproof, antiskid and soft-close detailing, reflecting our commitment to quality, durability and everyday convenience.',
-    'We assure you of our best quality, competitive pricing, and professional service.',
-    'We look forward to building a long-term association with you and request the opportunity to serve your project.'
-  ]
+  const projectName = cleanFieldValue(fields.get('projectName'))
+
+  const watermark = (
+    <div className="qd-watermark" aria-hidden>
+      {company?.name ?? 'QUOTATION'}
+    </div>
+  )
+
+  const pageTop = letterheadDataUrl ? (
+    <img className="qd-letterhead" src={letterheadDataUrl} alt="" />
+  ) : (
+    <header className="qd-header">
+      <div className="qd-brand">
+        {logoDataUrl && <img className="qd-logo" src={logoDataUrl} alt="" />}
+        <div>
+          <p className="qd-company-name">{companyName}</p>
+          {companyLines.length > 0 && <p className="qd-muted">{companyLines.join('\n')}</p>}
+        </div>
+      </div>
+    </header>
+  )
+
+  const pageFooter = (
+    <footer className="qd-cover-footer">
+      <div className="qd-cover-quote-line">
+        Quote No. : {quotation.quotationNumber} &nbsp;/&nbsp; Date : {formatDate(quotation.date)}
+      </div>
+      <div className="qd-cover-company">
+        <strong>{companyName}</strong>
+        {companyLines.length > 0 && <div>{companyLines.join(' · ')}</div>}
+      </div>
+      <div className="qd-cover-tagline">Innovative Concept | Quality Product | Fair Price</div>
+    </footer>
+  )
 
   return (
     <div className="qd-root">
-      {/* PAGE 1: cover letter — To + customer at top, company introduction below */}
+      {/* PAGE 1: About Silex Kitchen — To block at top, company profile below */}
       <article className="qd-page qd-cover">
-        <div className="qd-watermark" aria-hidden>
-          {company?.name ?? 'QUOTATION'}
+        {watermark}
+        {pageTop}
+
+        <div className="qd-about-title">
+          <h1>ABOUT {companyName.toUpperCase()}</h1>
+          <div className="qd-about-tagline">{ABOUT_TAGLINE}</div>
+          <div className="qd-about-meta">
+            QUOTE NO.: {quotation.quotationNumber}
+            {projectName ? <> &nbsp;|&nbsp; PROJECT: {projectName}</> : null}
+            &nbsp;|&nbsp; DATE: {formatDate(quotation.date)}
+          </div>
         </div>
 
-        {letterheadDataUrl ? (
-          <img className="qd-letterhead" src={letterheadDataUrl} alt="" />
-        ) : (
-          <header className="qd-header">
-            <div className="qd-brand">
-              {logoDataUrl && <img className="qd-logo" src={logoDataUrl} alt="" />}
-              <div>
-                <p className="qd-company-name">{companyName}</p>
-                {companyLines.length > 0 && <p className="qd-muted">{companyLines.join('\n')}</p>}
-              </div>
-            </div>
-          </header>
-        )}
-
         <div className="qd-cover-to">
-          <div className="qd-to-label">To,</div>
+          <div className="qd-to-label">To</div>
           <div className="qd-to-name">{customer?.name ?? quotation.customerName ?? '—'}</div>
-          {customer?.phone && <div className="qd-to-contact">{customer.phone}</div>}
-          {customerAddress && <div className="qd-to-contact">{customerAddress}</div>}
+          {customer?.phone && <div className="qd-to-contact">Contact: {customer.phone}</div>}
+          {customerAddress && (
+            <div className="qd-to-contact">Project Location: {customerAddress}</div>
+          )}
         </div>
 
         <div className="qd-cover-intro">
-          {coverIntro.map((paragraph) => (
+          {ABOUT_PAGE_ONE.map((section, index) => (
+            <div key={section.heading ?? index}>
+              {section.heading && <h2 className="qd-about-heading">{section.heading}</h2>}
+              {section.paragraphs.map((paragraph) => (
+                <p key={paragraph.slice(0, 32)}>{paragraph}</p>
+              ))}
+              {section.bullets && (
+                <ul className="qd-about-list">
+                  {section.bullets.map((bullet) => (
+                    <li key={bullet}>{bullet}</li>
+                  ))}
+                </ul>
+              )}
+            </div>
+          ))}
+        </div>
+
+        {pageFooter}
+      </article>
+
+      {/* PAGE 2: Why choose Silex Kitchen */}
+      <article className="qd-page qd-cover">
+        {watermark}
+        {pageTop}
+
+        <div className="qd-cover-intro">
+          <h2 className="qd-about-heading">{ABOUT_PAGE_TWO.heading}</h2>
+          <p>{ABOUT_PAGE_TWO.intro}</p>
+          <p className="qd-about-promises">{ABOUT_PAGE_TWO.promises}</p>
+          {ABOUT_PAGE_TWO.paragraphs.map((paragraph) => (
             <p key={paragraph.slice(0, 32)}>{paragraph}</p>
           ))}
         </div>
 
-        <footer className="qd-cover-footer">
-          <div className="qd-cover-quote-line">
-            Quote No. : {quotation.quotationNumber} &nbsp;/&nbsp; Date : {formatDate(quotation.date)}
-          </div>
-          <div className="qd-cover-company">
-            <strong>{companyName}</strong>
-            {companyLines.length > 0 && <div>{companyLines.join(' · ')}</div>}
-          </div>
-          <div className="qd-cover-tagline">Innovative Concept | Quality Product | Fair Price</div>
-        </footer>
+        <div className="qd-about-slogan">{ABOUT_PAGE_TWO.tagline}</div>
+
+        {pageFooter}
       </article>
 
-      {/* PAGE 2+: the quotation document */}
+      {/* Quotation document */}
       <article className="qd-page">
         <div className="qd-watermark" aria-hidden>
           {company?.name ?? 'QUOTATION'}
@@ -479,6 +531,83 @@ export default function QuotationDocument({ model }: Props): React.JSX.Element {
             </div>
           </div>
         </footer>
+      </article>
+
+      {/* Terms & Conditions pages (from the company T&C document) */}
+      <article className="qd-page qd-tnc">
+        {watermark}
+        {pageTop}
+
+        <h1 className="qd-tnc-title">MODULAR KITCHEN – TERMS &amp; CONDITIONS</h1>
+
+        <dl className="qd-tnc-company qd-dl">
+          <div>
+            <dt>Company Name</dt>
+            <dd>{companyName}</dd>
+          </div>
+          <div>
+            <dt>Address</dt>
+            <dd>{company?.address || '—'}</dd>
+          </div>
+          <div>
+            <dt>Mobile</dt>
+            <dd>{company?.phone || '—'}</dd>
+          </div>
+          <div>
+            <dt>E-mail</dt>
+            <dd>{company?.email || '—'}</dd>
+          </div>
+        </dl>
+
+        <div className="qd-tnc-body">
+          {MODULAR_KITCHEN_TERMS.map((clause, index) => (
+            <section className="qd-tnc-clause" key={clause.title}>
+              <h2>
+                {index + 1}. {clause.title}
+              </h2>
+              {clause.paragraphs?.map((paragraph) => (
+                <p key={paragraph.slice(0, 32)}>{paragraph}</p>
+              ))}
+              {clause.bullets && (
+                <ul>
+                  {clause.bullets.map((bullet) => (
+                    <li key={bullet}>{bullet}</li>
+                  ))}
+                </ul>
+              )}
+            </section>
+          ))}
+        </div>
+
+        <div className="qd-tnc-acceptance">
+          <h2>CUSTOMER ACCEPTANCE</h2>
+          <div className="qd-tnc-sign-grid">
+            <div>
+              <span>Customer Name</span>
+              <strong>{customer?.name ?? quotation.customerName ?? ''}</strong>
+            </div>
+            <div>
+              <span>Signature</span>
+              <strong>&nbsp;</strong>
+            </div>
+            <div>
+              <span>Date</span>
+              <strong>&nbsp;</strong>
+            </div>
+            <div>
+              <span>Order / Quotation No.</span>
+              <strong>{quotation.quotationNumber}</strong>
+            </div>
+            <div>
+              <span>Company Representative&apos;s Signature</span>
+              <strong>&nbsp;</strong>
+            </div>
+            <div>
+              <span>Company Seal / Stamp</span>
+              <strong>&nbsp;</strong>
+            </div>
+          </div>
+        </div>
       </article>
     </div>
   )

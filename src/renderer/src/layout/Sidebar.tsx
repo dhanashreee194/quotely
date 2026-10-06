@@ -13,7 +13,9 @@ import PeopleAltOutlinedIcon from '@mui/icons-material/PeopleAltOutlined'
 import Inventory2OutlinedIcon from '@mui/icons-material/Inventory2Outlined'
 import DescriptionOutlinedIcon from '@mui/icons-material/DescriptionOutlined'
 import SettingsOutlinedIcon from '@mui/icons-material/SettingsOutlined'
+import LogoutOutlinedIcon from '@mui/icons-material/LogoutOutlined'
 import logoUrl from '../../../../resources/logo.png'
+import { useAuthStore } from '../stores/authStore'
 
 const navItems = [
   { label: 'Dashboard', path: '/', icon: <DashboardOutlinedIcon /> },
@@ -33,6 +35,8 @@ export type SidebarProps = {
 }
 
 function NavContent({ onNavigate }: { onNavigate?: () => void }): React.JSX.Element {
+  const { user, setUser } = useAuthStore()
+
   return (
     <>
       <Toolbar sx={{ px: 2, gap: 1.25, minHeight: 64 }}>
@@ -53,7 +57,7 @@ function NavContent({ onNavigate }: { onNavigate?: () => void }): React.JSX.Elem
           Quotely
         </Typography>
       </Toolbar>
-      <Box sx={{ overflow: 'auto', px: 1 }}>
+      <Box sx={{ overflow: 'auto', px: 1, flexGrow: 1 }}>
         <List disablePadding>
           {navItems.map((item) => (
             <ListItemButton
@@ -81,6 +85,27 @@ function NavContent({ onNavigate }: { onNavigate?: () => void }): React.JSX.Elem
           ))}
         </List>
       </Box>
+      {user && (
+        <Box sx={{ px: 2, py: 1.5, borderTop: '1px solid', borderColor: 'divider' }}>
+          <Typography variant="body2" noWrap sx={{ fontWeight: 600 }}>
+            {user.displayName}
+          </Typography>
+          <Typography variant="caption" color="text.secondary" noWrap sx={{ display: 'block' }}>
+            Quote series {user.quotePrefix}
+          </Typography>
+          <ListItemButton
+            onClick={() => {
+              void window.api.auth.logout().then(() => setUser(null))
+            }}
+            sx={{ borderRadius: 1, mt: 1, px: 1, color: 'text.secondary' }}
+          >
+            <ListItemIcon sx={{ minWidth: 32, color: 'inherit' }}>
+              <LogoutOutlinedIcon fontSize="small" />
+            </ListItemIcon>
+            <ListItemText primary="Sign out" slotProps={{ primary: { variant: 'body2' } }} />
+          </ListItemButton>
+        </Box>
+      )}
     </>
   )
 }

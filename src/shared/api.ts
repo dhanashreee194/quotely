@@ -11,6 +11,7 @@ import type { QuotationDocumentModel } from './document'
 import type { NumberingConfig, QuotationStatus } from './quotation'
 import type {
   AssetKind,
+  SessionUser,
   ChargeRule,
   ChargeRuleInput,
   CompanyProfile,
@@ -165,7 +166,15 @@ export type DocumentsApi = {
   notifyReady: () => void
 }
 
+export type AuthApi = {
+  login: (username: string, password: string) => Promise<SessionUser>
+  logout: () => Promise<void>
+  current: () => Promise<SessionUser | null>
+  list: () => Promise<SessionUser[]>
+}
+
 export type QuotelyApi = {
+  auth: AuthApi
   settings: SettingsApi
   company: CompanyApi
   customers: CustomersApi

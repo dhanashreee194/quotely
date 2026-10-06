@@ -22,6 +22,7 @@ import {
   quotations
 } from '../db/schema'
 import { recordAudit } from './audit'
+import { allocateUserQuotationNumber, currentSessionUser } from './auth'
 import { allocateQuotationNumber } from './numbering'
 
 function now(): string {
@@ -201,8 +202,11 @@ async function insertQuotationWithNumber(
   const totals = computeTotals(items, charges, data.discountTotal ?? 0)
   const timestamp = now()
 
+  const sessionUser = currentSessionUser()
+
   for (let attempt = 0; attempt < 8; attempt += 1) {
-    const quotationNumber = await allocateQuotationNumber()
+    // Logged-in users get their own series (SKA0001, …); fall back to global numbering.
+    const quotationNumber = allocateUserQuotationNumber() ?? (await allocateQuotationNumber())
     try {
       const result = db
         .insert(quotations)
@@ -221,7 +225,7 @@ async function insertQuotationWithNumber(
           notesCustomer: emptyToNull(data.notesCustomer),
           parentQuotationId: extras.parentQuotationId ?? null,
           revisionNumber: extras.revisionNumber ?? 0,
-          createdBy: extras.createdBy ?? null,
+          createdBy: extras.createdBy ?? sessionUser?.displayName ?? null,
           createdAt: timestamp,
           updatedAt: timestamp
         })

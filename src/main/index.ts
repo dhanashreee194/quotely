@@ -6,6 +6,7 @@ import { ensureAssetsDir, ensureCompanyLogoBranding } from './assets'
 import { closeDatabase, initDatabase } from './db'
 import { installE2eDialogHooks } from './e2eDialogs'
 import { registerIpcHandlers } from './ipc'
+import { seedDefaultUsers } from './ipc/auth'
 
 // Isolate E2E runs from the developer's real userData.
 if (process.env.QUOTELY_E2E === '1' && process.env.QUOTELY_E2E_USER_DATA) {
@@ -57,6 +58,7 @@ app.whenReady().then(() => {
 
   ensureAssetsDir()
   initDatabase()
+  seedDefaultUsers()
   ensureCompanyLogoBranding()
   registerIpcHandlers()
 

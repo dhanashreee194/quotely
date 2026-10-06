@@ -1,4 +1,9 @@
 export const IpcChannels = {
+  authLogin: 'auth:login',
+  authLogout: 'auth:logout',
+  authCurrent: 'auth:current',
+  authList: 'auth:list',
+
   settingsGet: 'settings:get',
   settingsSet: 'settings:set',
 

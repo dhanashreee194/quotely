@@ -66,6 +66,15 @@ export type CustomerInput = {
   shippingAddress?: string | null
 }
 
+/** Logged-in software user (designer staff). */
+export type SessionUser = {
+  id: number
+  username: string
+  displayName: string
+  quotePrefix: string
+  isAdmin: boolean
+}
+
 export type Product = {
   id: number
   itemCode: string

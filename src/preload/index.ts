@@ -4,6 +4,12 @@ import type { QuotelyApi } from '../shared/api'
 import { IpcChannels } from '../shared/ipc'
 
 const api: QuotelyApi = {
+  auth: {
+    login: (username, password) => ipcRenderer.invoke(IpcChannels.authLogin, username, password),
+    logout: () => ipcRenderer.invoke(IpcChannels.authLogout),
+    current: () => ipcRenderer.invoke(IpcChannels.authCurrent),
+    list: () => ipcRenderer.invoke(IpcChannels.authList)
+  },
   settings: {
     get: (key) => ipcRenderer.invoke(IpcChannels.settingsGet, key),
     set: (key, value) => ipcRenderer.invoke(IpcChannels.settingsSet, key, value)

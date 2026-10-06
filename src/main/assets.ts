@@ -26,6 +26,17 @@ import rollingShutterAsset from '../../resources/kitchen/rolling-shutter.jpeg?as
 import swingTrayAsset from '../../resources/kitchen/swing-tray.jpeg?asset'
 import dustbinAsset from '../../resources/kitchen/dustbin.jpeg?asset'
 import magicCornerAsset from '../../resources/kitchen/magic-corner.jpeg?asset'
+import ssCutleryBasketAsset from '../../resources/kitchen/ss-cutlery-basket.jpeg?asset'
+import ssCupSaucerAsset from '../../resources/kitchen/ss-cup-saucer.jpeg?asset'
+import ssThaliBasketAsset from '../../resources/kitchen/ss-thali-basket.jpeg?asset'
+import ssMulti200Asset from '../../resources/kitchen/ss-multi-200.jpeg?asset'
+import ssMulti150Asset from '../../resources/kitchen/ss-multi-150.jpeg?asset'
+import ssShelfPulloutAsset from '../../resources/kitchen/ss-shelf-pullout.jpeg?asset'
+import ssLCarrierAsset from '../../resources/kitchen/ss-l-carrier.jpeg?asset'
+import telescopicChannelAsset from '../../resources/kitchen/telescopic-channel.png?asset'
+import quadroChannelAsset from '../../resources/kitchen/quadro-channel.jpeg?asset'
+import topEdgeSquareAsset from '../../resources/kitchen/top-edge-square.jpg?asset'
+import topEdgeCurveAsset from '../../resources/kitchen/top-edge-curve.jpg?asset'
 import type { AssetKind } from '../shared/types'
 import { getDatabase } from './db'
 import { seedDemoCompanyProfile } from './db/seed'
@@ -95,7 +106,18 @@ const KITCHEN_IMAGE_SOURCES: Record<string, string> = {
   'rolling-shutter.jpeg': rollingShutterAsset,
   'swing-tray.jpeg': swingTrayAsset,
   'dustbin.jpeg': dustbinAsset,
-  'magic-corner.jpeg': magicCornerAsset
+  'magic-corner.jpeg': magicCornerAsset,
+  'ss-cutlery-basket.jpeg': ssCutleryBasketAsset,
+  'ss-cup-saucer.jpeg': ssCupSaucerAsset,
+  'ss-thali-basket.jpeg': ssThaliBasketAsset,
+  'ss-multi-200.jpeg': ssMulti200Asset,
+  'ss-multi-150.jpeg': ssMulti150Asset,
+  'ss-shelf-pullout.jpeg': ssShelfPulloutAsset,
+  'ss-l-carrier.jpeg': ssLCarrierAsset,
+  'telescopic-channel.png': telescopicChannelAsset,
+  'quadro-channel.jpeg': quadroChannelAsset,
+  'top-edge-square.jpg': topEdgeSquareAsset,
+  'top-edge-curve.jpg': topEdgeCurveAsset
 }
 
 /** Relative asset path for a bundled kitchen product image filename. */

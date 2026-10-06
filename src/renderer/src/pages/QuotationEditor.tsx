@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import Alert from '@mui/material/Alert'
 import Button from '@mui/material/Button'
@@ -22,9 +22,16 @@ import PrintIcon from '@mui/icons-material/Print'
 import VisibilityOutlinedIcon from '@mui/icons-material/VisibilityOutlined'
 import { calculateQuotationTotals } from '../../../shared/calc'
 import {
-  KITCHEN_CATALOG,
+  DRAWER_SET_RATES,
+  FINISH_RATES,
+  HANDLE_IMAGES,
+  HANDLE_RATES,
   KITCHEN_SUBTYPES_BY_CODE,
-  MATERIAL_FINISHES
+  KITCHEN_SUBTYPE_GROUP_BY_CODE,
+  MATERIAL_FINISHES,
+  QUOTE_TYPE_DISCOUNT_PERCENT,
+  catalogForQuoteType,
+  kitchenGroupLabel
 } from '../../../shared/metadata'
 import type {
   ChargeRule,
@@ -40,6 +47,7 @@ import type {
 } from '../../../shared/types'
 import DynamicForm from '../components/DynamicForm'
 import PageShell from '../layout/PageShell'
+import { useAuthStore } from '../stores/authStore'
 import Box from '@mui/material/Box'
 
 type EditorItem = QuotationItemInput & { key: string }
@@ -322,39 +330,120 @@ export default function QuotationEditorPage(): React.JSX.Element {
     setCustomFieldValues((prev) => ({ ...prev, finish: coercedFinish }))
   }, [coercedFinish, currentFinish])
 
-  // Pre-fill a new quotation with the full kitchen catalog (exact sheet order + quantities).
+  // Default the designer name to the logged-in user on new quotations.
+  const sessionUser = useAuthStore((state) => state.user)
+  useEffect(() => {
+    if (editingId != null || !sessionUser) return
+    setCustomFieldValues((prev) =>
+      prev.designerName ? prev : { ...prev, designerName: sessionUser.displayName }
+    )
+  }, [editingId, sessionUser])
+
+  // Shutter rates follow the selected finish (PRICE LIST sheet).
+  useEffect(() => {
+    const rate = FINISH_RATES[coercedFinish]
+    if (!rate || products.length === 0) return
+    const shutterIds = new Set(
+      products.filter((row) => row.itemCode.startsWith('SHT-')).map((row) => row.id)
+    )
+    setItems((prev) => {
+      if (!prev.some((item) => item.productId && shutterIds.has(item.productId) && item.rate !== rate)) {
+        return prev
+      }
+      return prev.map((item) =>
+        item.productId && shutterIds.has(item.productId) && item.rate !== rate
+          ? { ...item, rate }
+          : item
+      )
+    })
+  }, [coercedFinish, products])
+
+  // Pre-fill a new quotation from the selected quote type's catalog
+  // (Tendam / Basket sheets — exact order, quantities and price-list rates).
+  const quoteTypeValue = String(customFieldValues.quoteType ?? '') || 'Tendam'
+  const lastPrefilledQuoteType = useRef<string | null>(null)
   useEffect(() => {
     if (editingId != null || products.length === 0) return
+    if (lastPrefilledQuoteType.current === quoteTypeValue) return
     const byCode = new Map(products.map((product) => [product.itemCode, product]))
-    const rows = KITCHEN_CATALOG.map((line) => {
-      const product = byCode.get(line.itemCode)
-      if (!product) return null
-      const subtypeOptions = KITCHEN_SUBTYPES_BY_CODE[line.itemCode]
-      return {
-        key: newKey(),
-        productId: product.id,
-        qty: line.defaultQty,
-        rate: product.standardPrice,
-        discount: 0,
-        discountType: 'fixed' as const,
-        taxPercent: product.taxPercent,
-        columnValues: {
-          description: product.name,
-          specs: product.description ?? '',
-          unit: product.unit ?? '',
-          image: product.imagePath ?? '',
-          category: product.category ?? '',
-          subtype: subtypeOptions ? subtypeOptions[0] : ''
+    const rows = catalogForQuoteType(quoteTypeValue)
+      .map((line) => {
+        const product = byCode.get(line.itemCode)
+        if (!product) return null
+        const subtypeOptions = KITCHEN_SUBTYPES_BY_CODE[line.itemCode]
+        const defaultSubtype = subtypeOptions
+          ? subtypeOptions.includes(line.name)
+            ? line.name
+            : subtypeOptions[0]
+          : ''
+        return {
+          key: newKey(),
+          productId: product.id,
+          qty: line.defaultQty,
+          rate: line.rate,
+          discount: 0,
+          discountType: 'fixed' as const,
+          taxPercent: product.taxPercent,
+          columnValues: {
+            description: line.name,
+            specs: product.description ?? '',
+            unit: line.unit,
+            image: product.imagePath ?? '',
+            category: kitchenGroupLabel(line.group),
+            subtype: defaultSubtype
+          }
         }
-      }
-    }).filter((row): row is NonNullable<typeof row> => Boolean(row))
+      })
+      .filter((row): row is NonNullable<typeof row> => Boolean(row))
     if (rows.length === 0) return
+
+    const firstLoad = lastPrefilledQuoteType.current == null
+    lastPrefilledQuoteType.current = quoteTypeValue
+    let applied = false
     setItems((prev) => {
-      const untouched =
-        prev.length === 1 && !prev[0].productId && !prev[0].columnValues?.description
+      const untouched = firstLoad
+        ? prev.length === 1 && !prev[0].productId && !prev[0].columnValues?.description
+        : true // switching quote type on a new quotation reloads the catalog
+      applied = untouched
       return untouched ? rows : prev
     })
-  }, [editingId, products])
+    // Default document discount per quote type (Tendam 25%, Basket 10%).
+    const subtotal = rows.reduce((sum, row) => sum + row.qty * row.rate, 0)
+    const pct = QUOTE_TYPE_DISCOUNT_PERCENT[quoteTypeValue] ?? 0
+    if (applied || !firstLoad) {
+      setDiscountTotal(Math.round(subtotal * pct) / 100)
+    }
+  }, [editingId, products, quoteTypeValue])
+
+  /** Subtype change with price-list side effects (drawer brand / handle type). */
+  const applySubtype = (item: EditorItem, subtype: string): void => {
+    const product = item.productId
+      ? products.find((row) => row.id === item.productId)
+      : undefined
+    const group = product ? KITCHEN_SUBTYPE_GROUP_BY_CODE[product.itemCode] : undefined
+    const patch: Partial<EditorItem> = {
+      columnValues: { ...item.columnValues, subtype }
+    }
+    if (group === 'drawer' && product) {
+      const rates = DRAWER_SET_RATES[subtype]
+      if (rates) patch.rate = product.itemCode === 'TD-POT' ? rates[1] : rates[0]
+    }
+    if (group === 'handle') {
+      const handle = HANDLE_RATES[subtype]
+      if (handle) {
+        patch.rate = handle.rate
+        patch.columnValues = {
+          ...patch.columnValues,
+          description: subtype,
+          unit: handle.unit,
+          image: HANDLE_IMAGES[subtype]
+            ? `products/kitchen/${HANDLE_IMAGES[subtype]}`
+            : String(item.columnValues?.image ?? '')
+        }
+      }
+    }
+    updateItem(item.key, patch)
+  }
 
   const itemColumns = useMemo(
     () => (templateBundle?.itemColumns.filter((column) => column.visible) ?? []) as ItemColumnDefinition[],
@@ -773,14 +862,7 @@ export default function QuotationEditorPage(): React.JSX.Element {
                                 size="small"
                                 label="Subtype"
                                 value={String(item.columnValues?.subtype ?? '')}
-                                onChange={(event) =>
-                                  updateItem(item.key, {
-                                    columnValues: {
-                                      ...item.columnValues,
-                                      subtype: event.target.value
-                                    }
-                                  })
-                                }
+                                onChange={(event) => applySubtype(item, event.target.value)}
                                 fullWidth
                               >
                                 {subtypeOptions.map((option) => (
