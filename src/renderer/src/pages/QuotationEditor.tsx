@@ -1,8 +1,11 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { Fragment, useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import Alert from '@mui/material/Alert'
 import Button from '@mui/material/Button'
-import Divider from '@mui/material/Divider'
+import Dialog from '@mui/material/Dialog'
+import DialogActions from '@mui/material/DialogActions'
+import DialogContent from '@mui/material/DialogContent'
+import DialogTitle from '@mui/material/DialogTitle'
 import IconButton from '@mui/material/IconButton'
 import MenuItem from '@mui/material/MenuItem'
 import Paper from '@mui/material/Paper'
@@ -35,9 +38,9 @@ import {
 } from '../../../shared/metadata'
 import type {
   ChargeRule,
+  CompanyProfile,
   Customer,
   CustomFieldDefinitionWithOptions,
-  ItemColumnDefinition,
   Product,
   QuotationBundle,
   QuotationChargeInput,
@@ -45,15 +48,26 @@ import type {
   QuotationTemplate,
   QuotationTemplateBundle
 } from '../../../shared/types'
-import DynamicForm from '../components/DynamicForm'
+import { buildDynamicDefaultValues } from '../lib/dynamicSchema'
 import PageShell from '../layout/PageShell'
 import { useAuthStore } from '../stores/authStore'
-import Box from '@mui/material/Box'
+import './QuotationEditor.css'
 
 type EditorItem = QuotationItemInput & { key: string }
 type EditorCharge = QuotationChargeInput & { key: string }
 
-function LineItemImageCell({
+const UNIT_OPTIONS = ['Nos', 'Sq.Ft.', 'R.Ft.', 'Inch', 'Pair', 'Set']
+
+function today(): string {
+  return new Date().toISOString().slice(0, 10)
+}
+
+function newKey(): string {
+  return `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`
+}
+
+/** Small clickable image thumbnail used inside the document table. */
+function ItemThumb({
   path,
   onChange
 }: {
@@ -77,66 +91,57 @@ function LineItemImageCell({
   }, [path])
 
   return (
-    <Stack spacing={0.5} sx={{ minWidth: 88, alignItems: 'flex-start' }}>
-      <Box
-        sx={{
-          width: 56,
-          height: 56,
-          border: '1px solid',
-          borderColor: 'divider',
-          borderRadius: 0.5,
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          overflow: 'hidden',
-          bgcolor: 'action.hover'
-        }}
-      >
-        {preview ? (
-          <Box
-            component="img"
-            src={preview}
-            alt=""
-            sx={{ maxWidth: '100%', maxHeight: '100%', objectFit: 'contain' }}
-          />
-        ) : (
-          <Typography variant="caption" color="text.secondary">
-            —
-          </Typography>
-        )}
-      </Box>
-      <Stack direction="row" spacing={0.5}>
-        <Button
-          size="small"
-          onClick={() => {
-            void window.api.assets.pickImage('product').then((relativePath) => {
-              if (relativePath) onChange(relativePath)
-            })
-          }}
-        >
-          {path ? 'Change' : 'Add'}
-        </Button>
-        {path ? (
-          <Button size="small" onClick={() => onChange('')}>
-            Clear
-          </Button>
-        ) : null}
-      </Stack>
-    </Stack>
+    <div
+      className="qe-thumb"
+      title={path ? 'Click to change image' : 'Click to add image'}
+      onClick={() => {
+        void window.api.assets.pickImage('product').then((relativePath) => {
+          if (relativePath) onChange(relativePath)
+        })
+      }}
+    >
+      {preview ? <img src={preview} alt="" /> : <span>+</span>}
+    </div>
   )
 }
 
-function today(): string {
-  return new Date().toISOString().slice(0, 10)
+/** Category band label follows the selected material + finish (like the printed sheet). */
+function displayCategory(category: string, baseMaterial: string, finish: string): string {
+  if (/SHUTTER/i.test(category) && !/ROLLING/i.test(category)) {
+    return kitchenGroupLabel('shutter', baseMaterial, finish)
+  }
+  if (/CABINET/i.test(category)) {
+    return kitchenGroupLabel('cabinet', baseMaterial, finish)
+  }
+  return category
 }
 
-function newKey(): string {
-  return `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`
+type NewProductDraft = {
+  productId: number | ''
+  description: string
+  category: string
+  qty: number
+  unit: string
+  rate: number
 }
 
-function isCoreColumn(columnKey: string): boolean {
-  return columnKey === 'qty' || columnKey === 'rate' || columnKey === 'amount' || columnKey === 'discount'
+const EMPTY_PRODUCT_DRAFT: NewProductDraft = {
+  productId: '',
+  description: '',
+  category: '',
+  qty: 1,
+  unit: 'Nos',
+  rate: 0
 }
+
+type NewCustomerDraft = {
+  name: string
+  phone: string
+  email: string
+  address: string
+}
+
+const EMPTY_CUSTOMER_DRAFT: NewCustomerDraft = { name: '', phone: '', email: '', address: '' }
 
 export default function QuotationEditorPage(): React.JSX.Element {
   const { id } = useParams()
@@ -149,6 +154,8 @@ export default function QuotationEditorPage(): React.JSX.Element {
   const [products, setProducts] = useState<Product[]>([])
   const [chargeRules, setChargeRules] = useState<ChargeRule[]>([])
   const [existing, setExisting] = useState<QuotationBundle | null>(null)
+  const [company, setCompany] = useState<CompanyProfile | null>(null)
+  const [letterhead, setLetterhead] = useState<string | null>(null)
 
   const [templateId, setTemplateId] = useState<number | ''>('')
   const [customerId, setCustomerId] = useState<number | ''>('')
@@ -175,19 +182,33 @@ export default function QuotationEditorPage(): React.JSX.Element {
   const [info, setInfo] = useState('')
   const [saving, setSaving] = useState(false)
 
+  // Inline "new customer" form inside the Customer Details block.
+  const [customerFormOpen, setCustomerFormOpen] = useState(false)
+  const [customerDraft, setCustomerDraft] = useState<NewCustomerDraft>(EMPTY_CUSTOMER_DRAFT)
+  const [customerSaving, setCustomerSaving] = useState(false)
+
+  // "Add product" dialog.
+  const [productDialogOpen, setProductDialogOpen] = useState(false)
+  const [productDraft, setProductDraft] = useState<NewProductDraft>(EMPTY_PRODUCT_DRAFT)
+
   const loadMeta = useCallback(async (): Promise<void> => {
-    const [templateRows, customerRows, productRows, rules, peek] = await Promise.all([
-      window.api.quotationTemplates.list(),
-      window.api.customers.list(),
-      window.api.products.list(),
-      window.api.chargeRules.list(),
-      window.api.numbering.peekNext()
-    ])
+    const [templateRows, customerRows, productRows, rules, peek, companyRow, letterheadUrl] =
+      await Promise.all([
+        window.api.quotationTemplates.list(),
+        window.api.customers.list(),
+        window.api.products.list(),
+        window.api.chargeRules.list(),
+        window.api.numbering.peekNext(),
+        window.api.company.get(),
+        window.api.assets.getDataUrl('branding/letterhead.jpeg')
+      ])
     setTemplates(templateRows)
     setCustomers(customerRows)
     setProducts(productRows)
     setChargeRules(rules)
     setPeekNumber(peek)
+    setCompany(companyRow)
+    setLetterhead(letterheadUrl)
 
     if (!editingId) {
       const preferred = templateRows.find((row) => row.isDefault) ?? templateRows[0]
@@ -227,6 +248,15 @@ export default function QuotationEditorPage(): React.JSX.Element {
       )
     // eslint-disable-next-line react-hooks/exhaustive-deps -- seed charges only when template changes on create
   }, [templateId, chargeRules, editingId])
+
+  // Seed custom-field defaults (quotation type, material, finish, sales rep…) on new quotes.
+  useEffect(() => {
+    if (editingId != null || !templateBundle) return
+    const fields = templateBundle.sections
+      .filter((section) => section.enabled && section.type !== 'items')
+      .flatMap((section) => section.fields)
+    setCustomFieldValues((prev) => ({ ...buildDynamicDefaultValues(fields), ...prev }))
+  }, [editingId, templateBundle])
 
   useEffect(() => {
     if (editingId == null) return
@@ -317,6 +347,16 @@ export default function QuotationEditorPage(): React.JSX.Element {
       })
   }, [templateBundle, baseMaterialValue])
 
+  const fieldByKey = useMemo(() => {
+    const map = new Map<string, CustomFieldDefinitionWithOptions>()
+    for (const field of customFields) map.set(field.fieldKey, field)
+    return map
+  }, [customFields])
+
+  const setField = (key: string, value: unknown): void => {
+    setCustomFieldValues((prev) => ({ ...prev, [key]: value }))
+  }
+
   // Keep the finish value valid for the selected material.
   const allowedFinishes = MATERIAL_FINISHES[baseMaterialValue]
   const currentFinish = String(customFieldValues.finish ?? '')
@@ -347,7 +387,9 @@ export default function QuotationEditorPage(): React.JSX.Element {
       products.filter((row) => row.itemCode.startsWith('SHT-')).map((row) => row.id)
     )
     setItems((prev) => {
-      if (!prev.some((item) => item.productId && shutterIds.has(item.productId) && item.rate !== rate)) {
+      if (
+        !prev.some((item) => item.productId && shutterIds.has(item.productId) && item.rate !== rate)
+      ) {
         return prev
       }
       return prev.map((item) =>
@@ -415,6 +457,10 @@ export default function QuotationEditorPage(): React.JSX.Element {
     }
   }, [editingId, products, quoteTypeValue])
 
+  const updateItem = (key: string, patch: Partial<EditorItem>): void => {
+    setItems((prev) => prev.map((item) => (item.key === key ? { ...item, ...patch } : item)))
+  }
+
   /** Subtype change with price-list side effects (drawer brand / handle type). */
   const applySubtype = (item: EditorItem, subtype: string): void => {
     const product = item.productId
@@ -445,11 +491,6 @@ export default function QuotationEditorPage(): React.JSX.Element {
     updateItem(item.key, patch)
   }
 
-  const itemColumns = useMemo(
-    () => (templateBundle?.itemColumns.filter((column) => column.visible) ?? []) as ItemColumnDefinition[],
-    [templateBundle]
-  )
-
   const totals = useMemo(
     () =>
       calculateQuotationTotals(
@@ -469,36 +510,9 @@ export default function QuotationEditorPage(): React.JSX.Element {
     [items, charges, discountTotal]
   )
 
-  const updateItem = (key: string, patch: Partial<EditorItem>): void => {
-    setItems((prev) => prev.map((item) => (item.key === key ? { ...item, ...patch } : item)))
-  }
-
-  const applyProduct = (key: string, productId: number): void => {
-    const product = products.find((row) => row.id === productId)
-    if (!product) {
-      updateItem(key, { productId })
-      return
-    }
-    const subtypeOptions = KITCHEN_SUBTYPES_BY_CODE[product.itemCode]
-    updateItem(key, {
-      productId,
-      rate: product.standardPrice,
-      taxPercent: product.taxPercent,
-      columnValues: {
-        ...items.find((item) => item.key === key)?.columnValues,
-        description: product.name,
-        specs: product.description ?? '',
-        unit: product.unit ?? '',
-        image: product.imagePath ?? '',
-        category: product.category ?? '',
-        subtype: subtypeOptions ? subtypeOptions[0] : ''
-      }
-    })
-  }
-
   const buildPayload = (): Parameters<typeof window.api.quotations.create>[0] => {
     if (templateId === '' || customerId === '') {
-      throw new Error('Template and customer are required')
+      throw new Error('Please select or add a customer first')
     }
 
     const customValues = customFields.map((field) => {
@@ -561,12 +575,101 @@ export default function QuotationEditorPage(): React.JSX.Element {
     }
   }
 
+  const handleCreateCustomer = async (): Promise<void> => {
+    if (!customerDraft.name.trim()) {
+      setError('Customer name is required')
+      return
+    }
+    setCustomerSaving(true)
+    try {
+      const created = await window.api.customers.create({
+        name: customerDraft.name.trim(),
+        phone: customerDraft.phone.trim() || null,
+        email: customerDraft.email.trim() || null,
+        address: customerDraft.address.trim() || null
+      })
+      const rows = await window.api.customers.list()
+      setCustomers(rows)
+      setCustomerId(created.id)
+      setCustomerFormOpen(false)
+      setCustomerDraft(EMPTY_CUSTOMER_DRAFT)
+      setInfo(`Customer "${created.name}" added`)
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to add customer')
+    } finally {
+      setCustomerSaving(false)
+    }
+  }
+
+  const handleAddProduct = (): void => {
+    const catalogProduct =
+      productDraft.productId !== ''
+        ? products.find((row) => row.id === productDraft.productId)
+        : undefined
+    const description = productDraft.description.trim() || catalogProduct?.name || 'New product'
+    const subtypeOptions = catalogProduct
+      ? KITCHEN_SUBTYPES_BY_CODE[catalogProduct.itemCode]
+      : undefined
+    setItems((prev) => [
+      ...prev,
+      {
+        key: newKey(),
+        productId: catalogProduct?.id ?? null,
+        qty: productDraft.qty,
+        rate: productDraft.rate,
+        discount: 0,
+        discountType: 'fixed',
+        taxPercent: catalogProduct?.taxPercent ?? 0,
+        columnValues: {
+          description,
+          specs: catalogProduct?.description ?? '',
+          unit: productDraft.unit,
+          image: catalogProduct?.imagePath ?? '',
+          category: productDraft.category,
+          subtype: subtypeOptions ? subtypeOptions[0] : ''
+        }
+      }
+    ])
+    setProductDialogOpen(false)
+    setProductDraft(EMPTY_PRODUCT_DRAFT)
+  }
+
+  const selectedCustomer = customers.find((row) => row.id === customerId) ?? null
+  const quoteNumber = existing?.quotationNumber || peekNumber || '—'
+  const companyName = company?.name ?? 'SILEX KITCHEN'
+  const currencySymbol = currency === 'INR' ? '₹' : currency
+
+  const categoryOptions = useMemo(() => {
+    const set = new Set<string>()
+    for (const item of items) {
+      const category = String(item.columnValues?.category ?? '').trim()
+      if (category) set.add(category)
+    }
+    return [...set]
+  }, [items])
+
+  const quoteTypeField = fieldByKey.get('quoteType')
+  const materialField = fieldByKey.get('baseMaterial')
+  const finishField = fieldByKey.get('finish')
+
+  const formatMoney = (value: number): string =>
+    `${currencySymbol} ${value.toLocaleString('en-IN', {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2
+    })}`
+
   return (
     <PageShell
-      title={editingId == null ? 'New quotation' : existing?.quotationNumber || 'Edit quotation'}
+      title={
+        editingId == null
+          ? `New quotation — ${quoteTypeValue}${baseMaterialValue ? ` · ${baseMaterialValue}` : ''}${
+              coercedFinish ? ` · ${coercedFinish}` : ''
+            }`
+          : existing?.quotationNumber || 'Edit quotation'
+      }
       subtitle={
         editingId == null
-          ? `Next number preview: ${peekNumber || '—'}`
+          ? 'Work directly inside the quote — edit details, rates and quantities in place.'
           : `Status: ${existing?.status ?? '—'}${
               existing && existing.revisionNumber > 0 ? ` · R${existing.revisionNumber}` : ''
             }`
@@ -624,333 +727,555 @@ export default function QuotationEditorPage(): React.JSX.Element {
         </>
       }
     >
-      {error && <Alert severity="error">{error}</Alert>}
+      {error && (
+        <Alert severity="error" onClose={() => setError('')}>
+          {error}
+        </Alert>
+      )}
       {info && (
         <Alert severity="success" onClose={() => setInfo('')}>
           {info}
         </Alert>
       )}
 
-      <Paper variant="outlined" sx={{ p: { xs: 1.5, sm: 2 }, minWidth: 0 }}>
-        <Stack spacing={2}>
-          <Typography variant="h6">Header</Typography>
-          <Stack direction={{ xs: 'column', md: 'row' }} spacing={2} useFlexGap sx={{ flexWrap: 'wrap' }}>
-            <TextField
-              select
-              label="Template"
-              value={templateId}
-              onChange={(event) => setTemplateId(Number(event.target.value))}
-              fullWidth
-              required
-              sx={{ flex: '1 1 200px', minWidth: 0 }}
-            >
-              {templates.map((template) => (
-                <MenuItem key={template.id} value={template.id}>
-                  {template.name}
-                </MenuItem>
-              ))}
-            </TextField>
-            <TextField
-              select
-              label="Customer"
-              value={customerId}
-              onChange={(event) => setCustomerId(Number(event.target.value))}
-              fullWidth
-              required
-              sx={{ flex: '1 1 200px', minWidth: 0 }}
-            >
-              {customers.map((customer) => (
-                <MenuItem key={customer.id} value={customer.id}>
-                  {customer.name}
-                </MenuItem>
-              ))}
-            </TextField>
-            <TextField
-              type="date"
-              label="Date"
-              value={date}
-              onChange={(event) => setDate(event.target.value)}
-              slotProps={{ inputLabel: { shrink: true } }}
-              fullWidth
-              sx={{ flex: '1 1 160px', minWidth: 0 }}
-            />
-            <TextField
-              label="Currency"
-              value={currency}
-              onChange={(event) => setCurrency(event.target.value)}
-              fullWidth
-              sx={{ flex: '1 1 120px', minWidth: 0 }}
-            />
-          </Stack>
-
-          {customFields.length > 0 && (
-            <>
-              <Divider />
-              <Typography variant="subtitle1">Custom fields</Typography>
-              <DynamicForm
-                key={`custom-${editingId ?? 'new'}-${customFields.map((field) => field.id).join('-')}-${
-                  existing ? 'loaded' : 'blank'
-                }-${baseMaterialValue}`}
-                fields={customFields}
-                hideSubmit
-                initialValues={
-                  coercedFinish ? { ...customFieldValues, finish: coercedFinish } : customFieldValues
-                }
-                onChange={setCustomFieldValues}
-              />
-            </>
-          )}
-        </Stack>
-      </Paper>
-
-      <Paper variant="outlined" sx={{ p: { xs: 1.5, sm: 2 }, minWidth: 0 }}>
-        <Stack spacing={2}>
-          <Stack
-            direction={{ xs: 'column', sm: 'row' }}
-            spacing={1}
-            sx={{ justifyContent: 'space-between', alignItems: { sm: 'center' } }}
+      {templates.length > 1 && (
+        <Stack direction="row" spacing={2}>
+          <TextField
+            select
+            size="small"
+            label="Template"
+            value={templateId}
+            onChange={(event) => setTemplateId(Number(event.target.value))}
+            sx={{ minWidth: 220 }}
           >
-            <Typography variant="h6">Line items</Typography>
-            <Button
-              size="small"
-              startIcon={<AddIcon />}
-              onClick={() =>
-                setItems((prev) => [
-                  ...prev,
-                  {
-                    key: newKey(),
-                    qty: 1,
-                    rate: 0,
-                    discount: 0,
-                    discountType: 'fixed',
-                    taxPercent: 0,
-                    columnValues: {}
-                  }
-                ])
-              }
-            >
-              Add line
-            </Button>
-          </Stack>
+            {templates.map((template) => (
+              <MenuItem key={template.id} value={template.id}>
+                {template.name}
+              </MenuItem>
+            ))}
+          </TextField>
+        </Stack>
+      )}
 
-          <TableContainer sx={{ overflowX: 'auto', width: '100%' }}>
-          <Table size="small" sx={{ minWidth: 720 }}>
-            <TableHead>
-              <TableRow>
-                <TableCell>Product</TableCell>
-                {itemColumns.map((column) => (
-                  <TableCell key={column.id}>{column.label}</TableCell>
+      {/* The quotation document — edited in place */}
+      <div className="qe-shell">
+        <article className="qe-page">
+          {letterhead && <img className="qe-letterhead" src={letterhead} alt="" />}
+
+          <header className="qe-header">
+            <div>
+              <div className="qe-company">{companyName}</div>
+              <div className="qe-muted">Tax: GST 18% applicable</div>
+            </div>
+            <div className="qe-meta">
+              <h2>QUOTATION</h2>
+              <div className="qe-meta-line">
+                <strong>Quote No.</strong> {quoteNumber}
+              </div>
+              <div className="qe-meta-line">
+                <strong>Date</strong>{' '}
+                <input
+                  type="date"
+                  value={date}
+                  onChange={(event) => setDate(event.target.value)}
+                />
+              </div>
+            </div>
+          </header>
+
+          <div className="qe-grid">
+            <section className="qe-block">
+              <h3>
+                Customer Details
+                <button
+                  type="button"
+                  className="qe-link-btn"
+                  onClick={() => setCustomerFormOpen((open) => !open)}
+                >
+                  {customerFormOpen ? 'Close' : '+ New customer'}
+                </button>
+              </h3>
+              <select
+                className="qe-customer-select"
+                value={customerId}
+                onChange={(event) =>
+                  setCustomerId(event.target.value === '' ? '' : Number(event.target.value))
+                }
+              >
+                <option value="">— Select customer —</option>
+                {customers.map((customer) => (
+                  <option key={customer.id} value={customer.id}>
+                    {customer.name}
+                  </option>
                 ))}
-                <TableCell>Discount</TableCell>
-                <TableCell>Disc. type</TableCell>
-                <TableCell align="right">Amount</TableCell>
-                <TableCell />
-              </TableRow>
-            </TableHead>
-            <TableBody>
-              {items.map((item, index) => (
-                <TableRow key={item.key}>
-                  <TableCell sx={{ minWidth: 160 }}>
-                    <TextField
-                      select
+              </select>
+              {selectedCustomer && (
+                <dl className="qe-dl">
+                  <dt>Name</dt>
+                  <dd>{selectedCustomer.name}</dd>
+                  <dt>Email</dt>
+                  <dd>{selectedCustomer.email || '—'}</dd>
+                  <dt>Contact No</dt>
+                  <dd>{selectedCustomer.phone || '—'}</dd>
+                  <dt>Address</dt>
+                  <dd>{selectedCustomer.billingAddress || selectedCustomer.address || '—'}</dd>
+                </dl>
+              )}
+              {customerFormOpen && (
+                <div className="qe-new-customer">
+                  <input
+                    placeholder="Customer name *"
+                    value={customerDraft.name}
+                    onChange={(event) =>
+                      setCustomerDraft((prev) => ({ ...prev, name: event.target.value }))
+                    }
+                    autoFocus
+                  />
+                  <input
+                    placeholder="Contact no"
+                    value={customerDraft.phone}
+                    onChange={(event) =>
+                      setCustomerDraft((prev) => ({ ...prev, phone: event.target.value }))
+                    }
+                  />
+                  <input
+                    placeholder="Email"
+                    value={customerDraft.email}
+                    onChange={(event) =>
+                      setCustomerDraft((prev) => ({ ...prev, email: event.target.value }))
+                    }
+                  />
+                  <input
+                    placeholder="Address / project location"
+                    value={customerDraft.address}
+                    onChange={(event) =>
+                      setCustomerDraft((prev) => ({ ...prev, address: event.target.value }))
+                    }
+                  />
+                  <div className="qe-new-customer-actions">
+                    <Button
                       size="small"
-                      value={item.productId ?? ''}
-                      onChange={(event) => {
-                        const value = event.target.value
-                        if (value === '') {
-                          updateItem(item.key, { productId: null })
-                        } else {
-                          applyProduct(item.key, Number(value))
-                        }
+                      onClick={() => {
+                        setCustomerFormOpen(false)
+                        setCustomerDraft(EMPTY_CUSTOMER_DRAFT)
                       }}
-                      fullWidth
                     >
-                      <MenuItem value="">One-off</MenuItem>
-                      {products.map((product) => (
-                        <MenuItem key={product.id} value={product.id}>
-                          {product.name}
-                        </MenuItem>
-                      ))}
-                    </TextField>
-                  </TableCell>
-                  {itemColumns.map((column) => {
-                    if (column.columnKey === 'qty') {
-                      return (
-                        <TableCell key={column.id}>
-                          <TextField
-                            size="small"
-                            type="number"
-                            value={item.qty}
-                            onChange={(event) =>
-                              updateItem(item.key, { qty: Number(event.target.value) })
-                            }
-                            sx={{ width: column.width ?? 90 }}
-                          />
-                        </TableCell>
-                      )
-                    }
-                    if (column.columnKey === 'rate') {
-                      return (
-                        <TableCell key={column.id}>
-                          <TextField
-                            size="small"
-                            type="number"
-                            value={item.rate}
-                            onChange={(event) =>
-                              updateItem(item.key, { rate: Number(event.target.value) })
-                            }
-                            sx={{ width: column.width ?? 100 }}
-                          />
-                        </TableCell>
-                      )
-                    }
-                    if (column.columnKey === 'amount') {
-                      return (
-                        <TableCell key={column.id} align="right">
-                          {(totals.lines[index]?.amount ?? 0).toFixed(2)}
-                        </TableCell>
-                      )
-                    }
-                    if (column.dataType === 'image') {
-                      const imagePath = String(item.columnValues?.[column.columnKey] ?? '')
-                      return (
-                        <TableCell key={column.id}>
-                          <LineItemImageCell
-                            path={imagePath}
-                            onChange={(nextPath) =>
-                              updateItem(item.key, {
-                                columnValues: {
-                                  ...item.columnValues,
-                                  [column.columnKey]: nextPath
-                                }
-                              })
-                            }
-                          />
-                        </TableCell>
-                      )
-                    }
-                    if (isCoreColumn(column.columnKey)) {
-                      return <TableCell key={column.id}>—</TableCell>
-                    }
-                    if (column.columnKey === 'description') {
-                      const product = item.productId
-                        ? products.find((row) => row.id === item.productId)
-                        : undefined
-                      const subtypeOptions = product
-                        ? KITCHEN_SUBTYPES_BY_CODE[product.itemCode]
-                        : undefined
-                      return (
-                        <TableCell key={column.id}>
-                          <Stack spacing={0.75} sx={{ minWidth: column.width ?? 220 }}>
-                            <TextField
-                              size="small"
-                              value={String(item.columnValues?.description ?? '')}
-                              onChange={(event) =>
-                                updateItem(item.key, {
-                                  columnValues: {
-                                    ...item.columnValues,
-                                    description: event.target.value
-                                  }
-                                })
-                              }
-                              fullWidth
-                              multiline
-                            />
-                            {subtypeOptions && (
-                              <TextField
-                                select
-                                size="small"
-                                label="Subtype"
-                                value={String(item.columnValues?.subtype ?? '')}
-                                onChange={(event) => applySubtype(item, event.target.value)}
-                                fullWidth
-                              >
-                                {subtypeOptions.map((option) => (
-                                  <MenuItem key={option} value={option}>
-                                    {option}
-                                  </MenuItem>
-                                ))}
-                              </TextField>
-                            )}
-                          </Stack>
-                        </TableCell>
-                      )
-                    }
-                    return (
-                      <TableCell key={column.id}>
-                        <TextField
-                          size="small"
-                          type={
-                            column.dataType === 'text' || column.dataType === undefined
-                              ? 'text'
-                              : 'number'
+                      Cancel
+                    </Button>
+                    <Button
+                      size="small"
+                      variant="contained"
+                      disabled={customerSaving || !customerDraft.name.trim()}
+                      onClick={() => void handleCreateCustomer()}
+                    >
+                      Save customer
+                    </Button>
+                  </div>
+                </div>
+              )}
+            </section>
+
+            <section className="qe-block">
+              <h3>Sales Representative Details</h3>
+              <dl className="qe-dl">
+                <dt>Sales Executive</dt>
+                <dd>
+                  <input
+                    value={String(customFieldValues.salesExecutive ?? '')}
+                    onChange={(event) => setField('salesExecutive', event.target.value)}
+                    placeholder="—"
+                  />
+                </dd>
+                <dt>Designer</dt>
+                <dd>
+                  <input
+                    value={String(customFieldValues.designerName ?? '')}
+                    onChange={(event) => setField('designerName', event.target.value)}
+                    placeholder="—"
+                  />
+                </dd>
+                <dt>Contact No</dt>
+                <dd>
+                  <input
+                    value={String(customFieldValues.designerContact ?? '')}
+                    onChange={(event) => setField('designerContact', event.target.value)}
+                    placeholder="—"
+                  />
+                </dd>
+                <dt>Email</dt>
+                <dd>
+                  <input
+                    value={String(customFieldValues.designerEmail ?? '')}
+                    onChange={(event) => setField('designerEmail', event.target.value)}
+                    placeholder="—"
+                  />
+                </dd>
+              </dl>
+            </section>
+          </div>
+
+          <div className="qe-options">
+            <div>
+              <span>Quotation Type</span>
+              <select
+                value={quoteTypeValue}
+                onChange={(event) => setField('quoteType', event.target.value)}
+              >
+                {(quoteTypeField?.options.length
+                  ? quoteTypeField.options.map((option) => option.value)
+                  : ['Tendam', 'Basket']
+                ).map((option) => (
+                  <option key={option} value={option}>
+                    {option}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <span>Material Type</span>
+              <select
+                value={baseMaterialValue}
+                onChange={(event) => setField('baseMaterial', event.target.value)}
+              >
+                {(materialField?.options.length
+                  ? materialField.options.map((option) => option.value)
+                  : Object.keys(MATERIAL_FINISHES)
+                ).map((option) => (
+                  <option key={option} value={option}>
+                    {option}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <span>Subtype / Finish</span>
+              <select
+                value={coercedFinish}
+                onChange={(event) => setField('finish', event.target.value)}
+              >
+                {(finishField?.options.length
+                  ? finishField.options.map((option) => option.value)
+                  : allowedFinishes ?? []
+                ).map((option) => (
+                  <option key={option} value={option}>
+                    {option}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <span>Project</span>
+              <input
+                value={String(customFieldValues.projectName ?? '')}
+                onChange={(event) => setField('projectName', event.target.value)}
+                placeholder="Project name"
+              />
+            </div>
+          </div>
+
+          <table className="qe-table">
+            <thead>
+              <tr>
+                <th style={{ width: '2.4rem' }}>Sr.No.</th>
+                <th style={{ width: '3.4rem' }}>Image</th>
+                <th>Description</th>
+                <th style={{ width: '4.4rem' }}>Qty</th>
+                <th style={{ width: '4.4rem' }}>Unit</th>
+                <th style={{ width: '5.4rem' }}>Rate</th>
+                <th style={{ width: '6.4rem' }}>Total</th>
+                <th style={{ width: '2rem' }} />
+              </tr>
+            </thead>
+            <tbody>
+              {items.map((item, index) => {
+                const category = String(item.columnValues?.category ?? '')
+                const prevCategory =
+                  index > 0 ? String(items[index - 1].columnValues?.category ?? '') : null
+                const showBand = category !== '' && category !== prevCategory
+                const product = item.productId
+                  ? products.find((row) => row.id === item.productId)
+                  : undefined
+                const subtypeOptions = product
+                  ? KITCHEN_SUBTYPES_BY_CODE[product.itemCode]
+                  : undefined
+                const unit = String(item.columnValues?.unit ?? '')
+                const unitChoices = UNIT_OPTIONS.includes(unit) || !unit
+                  ? UNIT_OPTIONS
+                  : [unit, ...UNIT_OPTIONS]
+                return (
+                  <Fragment key={item.key}>
+                    {showBand && (
+                      <tr className="qe-cat-row">
+                        <td colSpan={8}>
+                          {displayCategory(category, baseMaterialValue, coercedFinish)}
+                        </td>
+                      </tr>
+                    )}
+                    <tr>
+                      <td className="qe-center">{index + 1}</td>
+                      <td>
+                        <ItemThumb
+                          path={String(item.columnValues?.image ?? '')}
+                          onChange={(nextPath) =>
+                            updateItem(item.key, {
+                              columnValues: { ...item.columnValues, image: nextPath }
+                            })
                           }
-                          value={String(item.columnValues?.[column.columnKey] ?? '')}
+                        />
+                      </td>
+                      <td>
+                        <input
+                          value={String(item.columnValues?.description ?? '')}
                           onChange={(event) =>
                             updateItem(item.key, {
                               columnValues: {
                                 ...item.columnValues,
-                                [column.columnKey]:
-                                  column.dataType === 'text'
-                                    ? event.target.value
-                                    : Number(event.target.value)
+                                description: event.target.value
                               }
                             })
                           }
-                          sx={{ width: column.width ?? 140 }}
-                          multiline={column.columnKey === 'specs' || column.columnKey === 'description'}
-                          minRows={column.columnKey === 'specs' ? 2 : 1}
                         />
-                      </TableCell>
-                    )
-                  })}
-                  <TableCell>
-                    <TextField
-                      size="small"
-                      type="number"
-                      value={item.discount ?? 0}
-                      onChange={(event) =>
-                        updateItem(item.key, { discount: Number(event.target.value) })
-                      }
-                      sx={{ width: 90 }}
-                    />
-                  </TableCell>
-                  <TableCell>
-                    <TextField
-                      select
-                      size="small"
-                      value={item.discountType ?? 'fixed'}
-                      onChange={(event) =>
-                        updateItem(item.key, {
-                          discountType: event.target.value as 'fixed' | 'percentage'
-                        })
-                      }
-                      sx={{ width: 110 }}
-                    >
-                      <MenuItem value="fixed">Fixed</MenuItem>
-                      <MenuItem value="percentage">%</MenuItem>
-                    </TextField>
-                  </TableCell>
-                  <TableCell align="right">
-                    {(totals.lines[index]?.amount ?? 0).toFixed(2)}
-                  </TableCell>
-                  <TableCell>
-                    <IconButton
-                      size="small"
-                      disabled={items.length === 1}
-                      onClick={() => setItems((prev) => prev.filter((row) => row.key !== item.key))}
-                    >
-                      <DeleteOutlinedIcon fontSize="small" />
-                    </IconButton>
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-          </TableContainer>
-        </Stack>
-      </Paper>
+                        {subtypeOptions && (
+                          <select
+                            className="qe-subtype"
+                            value={String(item.columnValues?.subtype ?? '')}
+                            onChange={(event) => applySubtype(item, event.target.value)}
+                          >
+                            {subtypeOptions.map((option) => (
+                              <option key={option} value={option}>
+                                {option}
+                              </option>
+                            ))}
+                          </select>
+                        )}
+                      </td>
+                      <td>
+                        <input
+                          type="number"
+                          min={0}
+                          step="0.1"
+                          value={item.qty}
+                          onChange={(event) =>
+                            updateItem(item.key, { qty: Number(event.target.value) })
+                          }
+                        />
+                      </td>
+                      <td>
+                        <select
+                          value={unit}
+                          onChange={(event) =>
+                            updateItem(item.key, {
+                              columnValues: { ...item.columnValues, unit: event.target.value }
+                            })
+                          }
+                        >
+                          {unitChoices.map((option) => (
+                            <option key={option} value={option}>
+                              {option}
+                            </option>
+                          ))}
+                        </select>
+                      </td>
+                      <td>
+                        <input
+                          type="number"
+                          min={0}
+                          value={item.rate}
+                          onChange={(event) =>
+                            updateItem(item.key, { rate: Number(event.target.value) })
+                          }
+                        />
+                      </td>
+                      <td className="qe-num">
+                        <strong>{formatMoney(totals.lines[index]?.amount ?? 0)}</strong>
+                      </td>
+                      <td className="qe-center">
+                        <button
+                          type="button"
+                          className="qe-del-btn"
+                          title="Remove row"
+                          disabled={items.length === 1}
+                          onClick={() =>
+                            setItems((prev) => prev.filter((row) => row.key !== item.key))
+                          }
+                        >
+                          ✕
+                        </button>
+                      </td>
+                    </tr>
+                  </Fragment>
+                )
+              })}
+            </tbody>
+          </table>
 
+          <div className="qe-addbar">
+            <Button
+              variant="outlined"
+              size="small"
+              startIcon={<AddIcon />}
+              onClick={() => {
+                setProductDraft({
+                  ...EMPTY_PRODUCT_DRAFT,
+                  category: categoryOptions[categoryOptions.length - 1] ?? ''
+                })
+                setProductDialogOpen(true)
+              }}
+            >
+              Add Product
+            </Button>
+          </div>
+
+          <div className="qe-summary">
+            <div className="qe-row">
+              <span>Subtotal</span>
+              <span>{formatMoney(totals.subtotal)}</span>
+            </div>
+            <div className="qe-row">
+              <span>Discount</span>
+              <input
+                type="number"
+                min={0}
+                value={discountTotal}
+                onChange={(event) => setDiscountTotal(Number(event.target.value))}
+              />
+            </div>
+            {totals.taxTotal > 0 && (
+              <div className="qe-row">
+                <span>Tax</span>
+                <span>{formatMoney(totals.taxTotal)}</span>
+              </div>
+            )}
+            {totals.otherCharges > 0 && (
+              <div className="qe-row">
+                <span>Other charges</span>
+                <span>{formatMoney(totals.otherCharges)}</span>
+              </div>
+            )}
+            <div className="qe-row qe-grand">
+              <span>Grand Total</span>
+              <span>{formatMoney(totals.grandTotal)}</span>
+            </div>
+          </div>
+        </article>
+      </div>
+
+      {/* Add product dialog (demo-style) */}
+      <Dialog
+        open={productDialogOpen}
+        onClose={() => setProductDialogOpen(false)}
+        maxWidth="sm"
+        fullWidth
+      >
+        <DialogTitle>Add New Product</DialogTitle>
+        <DialogContent>
+          <Stack spacing={2} sx={{ mt: 1 }}>
+            <TextField
+              select
+              size="small"
+              label="From catalog (optional)"
+              value={productDraft.productId}
+              onChange={(event) => {
+                const value = event.target.value
+                if (value === '') {
+                  setProductDraft((prev) => ({ ...prev, productId: '' }))
+                  return
+                }
+                const product = products.find((row) => row.id === Number(value))
+                setProductDraft((prev) => ({
+                  ...prev,
+                  productId: Number(value),
+                  description: product?.name ?? prev.description,
+                  rate: product?.standardPrice ?? prev.rate,
+                  unit: product?.unit || prev.unit,
+                  category: product?.category || prev.category
+                }))
+              }}
+              fullWidth
+            >
+              <MenuItem value="">— Custom product —</MenuItem>
+              {products.map((product) => (
+                <MenuItem key={product.id} value={product.id}>
+                  {product.name}
+                </MenuItem>
+              ))}
+            </TextField>
+            <TextField
+              size="small"
+              label="Description"
+              value={productDraft.description}
+              onChange={(event) =>
+                setProductDraft((prev) => ({ ...prev, description: event.target.value }))
+              }
+              placeholder="e.g. Corner Carousel Unit"
+              fullWidth
+            />
+            <TextField
+              select
+              size="small"
+              label="Category"
+              value={productDraft.category}
+              onChange={(event) =>
+                setProductDraft((prev) => ({ ...prev, category: event.target.value }))
+              }
+              fullWidth
+            >
+              <MenuItem value="">— None —</MenuItem>
+              {categoryOptions.map((option) => (
+                <MenuItem key={option} value={option}>
+                  {displayCategory(option, baseMaterialValue, coercedFinish)}
+                </MenuItem>
+              ))}
+            </TextField>
+            <Stack direction="row" spacing={2}>
+              <TextField
+                size="small"
+                type="number"
+                label="Qty"
+                value={productDraft.qty}
+                onChange={(event) =>
+                  setProductDraft((prev) => ({ ...prev, qty: Number(event.target.value) }))
+                }
+                sx={{ flex: 1 }}
+              />
+              <TextField
+                select
+                size="small"
+                label="Unit"
+                value={productDraft.unit}
+                onChange={(event) =>
+                  setProductDraft((prev) => ({ ...prev, unit: event.target.value }))
+                }
+                sx={{ flex: 1 }}
+              >
+                {UNIT_OPTIONS.map((option) => (
+                  <MenuItem key={option} value={option}>
+                    {option}
+                  </MenuItem>
+                ))}
+              </TextField>
+              <TextField
+                size="small"
+                type="number"
+                label={`Rate (${currencySymbol})`}
+                value={productDraft.rate}
+                onChange={(event) =>
+                  setProductDraft((prev) => ({ ...prev, rate: Number(event.target.value) }))
+                }
+                sx={{ flex: 1 }}
+              />
+            </Stack>
+          </Stack>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setProductDialogOpen(false)}>Cancel</Button>
+          <Button variant="contained" onClick={handleAddProduct}>
+            Add to Quote
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Charges */}
       <Paper variant="outlined" sx={{ p: { xs: 1.5, sm: 2 }, minWidth: 0 }}>
         <Stack spacing={2}>
           <Stack
@@ -979,126 +1304,95 @@ export default function QuotationEditorPage(): React.JSX.Element {
             </Button>
           </Stack>
           <TableContainer sx={{ overflowX: 'auto', width: '100%' }}>
-          <Table size="small" sx={{ minWidth: 480 }}>
-            <TableHead>
-              <TableRow>
-                <TableCell>Name</TableCell>
-                <TableCell>Type</TableCell>
-                <TableCell>Value</TableCell>
-                <TableCell align="right">Amount</TableCell>
-                <TableCell />
-              </TableRow>
-            </TableHead>
-            <TableBody>
-              {charges.map((charge, index) => (
-                <TableRow key={charge.key}>
-                  <TableCell>
-                    <TextField
-                      size="small"
-                      value={charge.name}
-                      onChange={(event) =>
-                        setCharges((prev) =>
-                          prev.map((row) =>
-                            row.key === charge.key ? { ...row, name: event.target.value } : row
-                          )
-                        )
-                      }
-                      fullWidth
-                    />
-                  </TableCell>
-                  <TableCell>
-                    <TextField
-                      select
-                      size="small"
-                      value={charge.type}
-                      onChange={(event) =>
-                        setCharges((prev) =>
-                          prev.map((row) =>
-                            row.key === charge.key
-                              ? {
-                                  ...row,
-                                  type: event.target.value as 'percentage' | 'fixed'
-                                }
-                              : row
-                          )
-                        )
-                      }
-                      sx={{ minWidth: 120 }}
-                    >
-                      <MenuItem value="percentage">Percentage</MenuItem>
-                      <MenuItem value="fixed">Fixed</MenuItem>
-                    </TextField>
-                  </TableCell>
-                  <TableCell>
-                    <TextField
-                      size="small"
-                      type="number"
-                      value={charge.value}
-                      onChange={(event) =>
-                        setCharges((prev) =>
-                          prev.map((row) =>
-                            row.key === charge.key
-                              ? { ...row, value: Number(event.target.value) }
-                              : row
-                          )
-                        )
-                      }
-                      sx={{ width: 100 }}
-                    />
-                  </TableCell>
-                  <TableCell align="right">
-                    {(totals.charges[index]?.amount ?? 0).toFixed(2)}
-                  </TableCell>
-                  <TableCell>
-                    <IconButton
-                      size="small"
-                      onClick={() =>
-                        setCharges((prev) => prev.filter((row) => row.key !== charge.key))
-                      }
-                    >
-                      <DeleteOutlinedIcon fontSize="small" />
-                    </IconButton>
-                  </TableCell>
+            <Table size="small" sx={{ minWidth: 480 }}>
+              <TableHead>
+                <TableRow>
+                  <TableCell>Name</TableCell>
+                  <TableCell>Type</TableCell>
+                  <TableCell>Value</TableCell>
+                  <TableCell align="right">Amount</TableCell>
+                  <TableCell />
                 </TableRow>
-              ))}
-            </TableBody>
-          </Table>
+              </TableHead>
+              <TableBody>
+                {charges.map((charge, index) => (
+                  <TableRow key={charge.key}>
+                    <TableCell>
+                      <TextField
+                        size="small"
+                        value={charge.name}
+                        onChange={(event) =>
+                          setCharges((prev) =>
+                            prev.map((row) =>
+                              row.key === charge.key ? { ...row, name: event.target.value } : row
+                            )
+                          )
+                        }
+                        fullWidth
+                      />
+                    </TableCell>
+                    <TableCell>
+                      <TextField
+                        select
+                        size="small"
+                        value={charge.type}
+                        onChange={(event) =>
+                          setCharges((prev) =>
+                            prev.map((row) =>
+                              row.key === charge.key
+                                ? {
+                                    ...row,
+                                    type: event.target.value as 'percentage' | 'fixed'
+                                  }
+                                : row
+                            )
+                          )
+                        }
+                        sx={{ minWidth: 120 }}
+                      >
+                        <MenuItem value="percentage">Percentage</MenuItem>
+                        <MenuItem value="fixed">Fixed</MenuItem>
+                      </TextField>
+                    </TableCell>
+                    <TableCell>
+                      <TextField
+                        size="small"
+                        type="number"
+                        value={charge.value}
+                        onChange={(event) =>
+                          setCharges((prev) =>
+                            prev.map((row) =>
+                              row.key === charge.key
+                                ? { ...row, value: Number(event.target.value) }
+                                : row
+                            )
+                          )
+                        }
+                        sx={{ width: 100 }}
+                      />
+                    </TableCell>
+                    <TableCell align="right">
+                      {(totals.charges[index]?.amount ?? 0).toFixed(2)}
+                    </TableCell>
+                    <TableCell>
+                      <IconButton
+                        size="small"
+                        onClick={() =>
+                          setCharges((prev) => prev.filter((row) => row.key !== charge.key))
+                        }
+                      >
+                        <DeleteOutlinedIcon fontSize="small" />
+                      </IconButton>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
           </TableContainer>
-
-          <Stack spacing={1} sx={{ width: '100%', maxWidth: { sm: 360 }, ml: { sm: 'auto' } }}>
-            <TextField
-              size="small"
-              type="number"
-              label="Document discount"
-              value={discountTotal}
-              onChange={(event) => setDiscountTotal(Number(event.target.value))}
-              fullWidth
-            />
-            <Stack direction="row" sx={{ justifyContent: 'space-between' }}>
-              <Typography color="text.secondary">Subtotal</Typography>
-              <Typography>{totals.subtotal.toFixed(2)}</Typography>
-            </Stack>
-            <Stack direction="row" sx={{ justifyContent: 'space-between' }}>
-              <Typography color="text.secondary">Discount</Typography>
-              <Typography>{totals.discountTotal.toFixed(2)}</Typography>
-            </Stack>
-            <Stack direction="row" sx={{ justifyContent: 'space-between' }}>
-              <Typography color="text.secondary">Tax</Typography>
-              <Typography>{totals.taxTotal.toFixed(2)}</Typography>
-            </Stack>
-            <Stack direction="row" sx={{ justifyContent: 'space-between' }}>
-              <Typography color="text.secondary">Other charges</Typography>
-              <Typography>{totals.otherCharges.toFixed(2)}</Typography>
-            </Stack>
-            <Divider />
-            <Stack direction="row" sx={{ justifyContent: 'space-between' }}>
-              <Typography variant="h6">Grand total</Typography>
-              <Typography variant="h6">{totals.grandTotal.toFixed(2)}</Typography>
-            </Stack>
-          </Stack>
         </Stack>
       </Paper>
 
+      {/* Notes */}
       <Paper variant="outlined" sx={{ p: { xs: 1.5, sm: 2 }, minWidth: 0 }}>
         <Stack spacing={2}>
           <Typography variant="h6">Notes</Typography>
