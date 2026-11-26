@@ -4,6 +4,13 @@ directories:
   buildResources: build
 files:
   - '!**/.vscode/*'
+  - '!.smoke/**'
+  - '!demo/**'
+  - '!scripts/**'
+  - '!test-results/**'
+  - '!quotely.dev.db*'
+  - '!drizzle.config.ts'
+  - '!*.tsbuildinfo'
   - '!src/*'
   - '!e2e/*'
   - '!e2e-results/*'
