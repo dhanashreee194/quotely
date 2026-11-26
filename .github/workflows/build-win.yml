@@ -52,15 +52,30 @@ jobs:
           $ok = $false
           for ($i = 0; $i -lt 60; $i++) {
             Start-Sleep -Seconds 1
+            $app.Refresh()
             if ($app.HasExited) { break }
-            if (Test-Path (Join-Path $data 'quotely.db')) { $ok = $true; Start-Sleep -Seconds 8; break }
+            if ((Test-Path (Join-Path $data 'quotely.db')) -and ($app.MainWindowHandle -ne 0)) { $ok = $true; Start-Sleep -Seconds 8; break }
           }
+          Add-Type -AssemblyName System.Windows.Forms, System.Drawing
+          $bounds = [System.Windows.Forms.Screen]::PrimaryScreen.Bounds
+          $bmp = New-Object System.Drawing.Bitmap $bounds.Width, $bounds.Height
+          $gfx = [System.Drawing.Graphics]::FromImage($bmp)
+          $gfx.CopyFromScreen($bounds.Location, [System.Drawing.Point]::Empty, $bounds.Size)
+          $bmp.Save((Join-Path $env:RUNNER_TEMP 'smoke-screenshot.png'))
           $log = Join-Path $data 'startup-error.log'
           if (Test-Path $log) { Get-Content $log; throw 'startup-error.log was written' }
           if ($app.HasExited) { throw "App exited early with code $($app.ExitCode)" }
-          if (-not $ok) { throw 'App did not create its database within 60s' }
-          Write-Host 'Smoke test passed: installed, launched, database created, still running.'
+          if (-not $ok) { throw 'App did not create its database and show a window within 60s' }
+          Write-Host 'Smoke test passed: installed, launched, window shown, database created, still running.'
           Stop-Process -Id $app.Id -Force
+
+      - name: Upload smoke test screenshot
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: smoke-screenshot
+          path: ${{ runner.temp }}/smoke-screenshot.png
+          if-no-files-found: ignore
 
       - name: Upload installer artifact
         uses: actions/upload-artifact@v4
