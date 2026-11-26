@@ -20,10 +20,11 @@ import TextField from '@mui/material/TextField'
 import Typography from '@mui/material/Typography'
 import AddIcon from '@mui/icons-material/Add'
 import DeleteOutlinedIcon from '@mui/icons-material/DeleteOutlined'
+import FileDownloadOutlinedIcon from '@mui/icons-material/FileDownloadOutlined'
 import PictureAsPdfIcon from '@mui/icons-material/PictureAsPdf'
 import PrintIcon from '@mui/icons-material/Print'
 import VisibilityOutlinedIcon from '@mui/icons-material/VisibilityOutlined'
-import { calculateQuotationTotals } from '../../../shared/calc'
+import { calculateQuotationTotals, roundMoney } from '../../../shared/calc'
 import {
   DRAWER_SET_RATES,
   FINISH_RATES,
@@ -32,9 +33,21 @@ import {
   KITCHEN_SUBTYPES_BY_CODE,
   KITCHEN_SUBTYPE_GROUP_BY_CODE,
   MATERIAL_FINISHES,
+  PANTRY_IMAGES,
   QUOTE_TYPE_DISCOUNT_PERCENT,
+  TOP_EDGE_OPTIONS,
+  COMMON_UNIT_OPTIONS,
+  DEFAULT_TABLE_HEADER_LABELS,
+  INSTALLATION_CHARGE_NAME,
+  INSTALLATION_RATE_PER_SQFT,
   catalogForQuoteType,
-  kitchenGroupLabel
+  defaultCatalogSubtype,
+  foldCommonUnitItems,
+  isInstallationChargeName,
+  kitchenGroupLabel,
+  parseTableHeaderOverrides,
+  plySquareFeet,
+  TABLE_HEADERS_FIELD_KEY
 } from '../../../shared/metadata'
 import type {
   ChargeRule,
@@ -50,6 +63,7 @@ import type {
 } from '../../../shared/types'
 import { buildDynamicDefaultValues } from '../lib/dynamicSchema'
 import PageShell from '../layout/PageShell'
+import SilexLetterhead from '../components/SilexLetterhead'
 import { useAuthStore } from '../stores/authStore'
 import './QuotationEditor.css'
 
@@ -64,6 +78,14 @@ function today(): string {
 
 function newKey(): string {
   return `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`
+}
+
+function parseQtyInput(raw: string): number | null {
+  const trimmed = raw.trim()
+  if (trimmed === '' || trimmed === '.') return 0
+  if (!/^\d*\.?\d*$/.test(trimmed)) return null
+  const next = Number(trimmed)
+  return Number.isFinite(next) ? Math.max(0, next) : null
 }
 
 /** Small clickable image thumbnail used inside the document table. */
@@ -113,7 +135,7 @@ function displayCategory(category: string, baseMaterial: string, finish: string)
   if (/CABINET/i.test(category)) {
     return kitchenGroupLabel('cabinet', baseMaterial, finish)
   }
-  return category
+  return category.replace(/^SLEEK\s+/i, '')
 }
 
 type NewProductDraft = {
@@ -154,14 +176,17 @@ export default function QuotationEditorPage(): React.JSX.Element {
   const [products, setProducts] = useState<Product[]>([])
   const [chargeRules, setChargeRules] = useState<ChargeRule[]>([])
   const [existing, setExisting] = useState<QuotationBundle | null>(null)
-  const [company, setCompany] = useState<CompanyProfile | null>(null)
-  const [letterhead, setLetterhead] = useState<string | null>(null)
+  const [, setCompany] = useState<CompanyProfile | null>(null)
+  const [headerBrand, setHeaderBrand] = useState<string | null>(null)
 
   const [templateId, setTemplateId] = useState<number | ''>('')
   const [customerId, setCustomerId] = useState<number | ''>('')
   const [date, setDate] = useState(today())
   const [currency, setCurrency] = useState('INR')
-  const [discountTotal, setDiscountTotal] = useState(0)
+  const [discountPercent, setDiscountPercent] = useState(0)
+  const [installationAmount, setInstallationAmount] = useState(0)
+  const [installationTouched, setInstallationTouched] = useState(false)
+  const [qtyDrafts, setQtyDrafts] = useState<Record<string, string>>({})
   const [notesInternal, setNotesInternal] = useState('')
   const [notesCustomer, setNotesCustomer] = useState('')
   const [customFieldValues, setCustomFieldValues] = useState<Record<string, unknown>>({})
@@ -192,7 +217,7 @@ export default function QuotationEditorPage(): React.JSX.Element {
   const [productDraft, setProductDraft] = useState<NewProductDraft>(EMPTY_PRODUCT_DRAFT)
 
   const loadMeta = useCallback(async (): Promise<void> => {
-    const [templateRows, customerRows, productRows, rules, peek, companyRow, letterheadUrl] =
+    const [templateRows, customerRows, productRows, rules, peek, companyRow, brandUrl] =
       await Promise.all([
         window.api.quotationTemplates.list(),
         window.api.customers.list(),
@@ -200,7 +225,7 @@ export default function QuotationEditorPage(): React.JSX.Element {
         window.api.chargeRules.list(),
         window.api.numbering.peekNext(),
         window.api.company.get(),
-        window.api.assets.getDataUrl('branding/letterhead.jpeg')
+        window.api.assets.getDataUrl('branding/silex-logo.jpeg')
       ])
     setTemplates(templateRows)
     setCustomers(customerRows)
@@ -208,7 +233,7 @@ export default function QuotationEditorPage(): React.JSX.Element {
     setChargeRules(rules)
     setPeekNumber(peek)
     setCompany(companyRow)
-    setLetterhead(letterheadUrl)
+    setHeaderBrand(brandUrl)
 
     if (!editingId) {
       const preferred = templateRows.find((row) => row.isDefault) ?? templateRows[0]
@@ -233,13 +258,15 @@ export default function QuotationEditorPage(): React.JSX.Element {
         setTemplateBundle(bundle)
         if (!editingId && bundle && charges.length === 0 && chargeRules.length > 0) {
           setCharges(
-            chargeRules.map((rule) => ({
-              key: newKey(),
-              name: rule.name,
-              type: rule.type,
-              value: rule.value,
-              appliesToSubtotal: rule.appliesToSubtotal
-            }))
+            chargeRules
+              .filter((rule) => !isInstallationChargeName(rule.name))
+              .map((rule) => ({
+                key: newKey(),
+                name: rule.name,
+                type: rule.type,
+                value: rule.value,
+                appliesToSubtotal: rule.appliesToSubtotal
+              }))
           )
         }
       })
@@ -272,29 +299,46 @@ export default function QuotationEditorPage(): React.JSX.Element {
         setCustomerId(bundle.customerId)
         setDate(bundle.date.slice(0, 10))
         setCurrency(bundle.currency)
-        setDiscountTotal(bundle.discountTotal)
+        setDiscountPercent(
+          bundle.subtotal > 0
+            ? Math.round((bundle.discountTotal / bundle.subtotal) * 1000) / 10
+            : 0
+        )
         setNotesInternal(bundle.notesInternal ?? '')
         setNotesCustomer(bundle.notesCustomer ?? '')
+        const installation = bundle.charges.find((charge) => isInstallationChargeName(charge.name))
+        setInstallationTouched(Boolean(installation))
+        setInstallationAmount(installation ? installation.value : 0)
         setItems(
-          bundle.items.map((item) => ({
-            key: newKey(),
-            productId: item.productId,
-            qty: item.qty,
-            rate: item.rate,
-            discount: item.discount,
-            discountType: item.discountType,
-            taxPercent: item.taxPercent,
-            columnValues: item.columnValues
-          }))
+          bundle.items.map((item) => {
+            const columnValues = { ...(item.columnValues ?? {}) }
+            if (columnValues.description === 'Common Unit') {
+              columnValues.description = 'Corner Unit'
+            }
+            if (columnValues.subtype === 'J1 Handle') columnValues.subtype = 'J Handle'
+            if (columnValues.subtype === 'G1 Handle') columnValues.subtype = 'G Handle'
+            return {
+              key: newKey(),
+              productId: item.productId,
+              qty: item.qty,
+              rate: item.rate,
+              discount: item.discount,
+              discountType: item.discountType,
+              taxPercent: item.taxPercent,
+              columnValues
+            }
+          })
         )
         setCharges(
-          bundle.charges.map((charge) => ({
-            key: newKey(),
-            name: charge.name,
-            type: charge.type,
-            value: charge.value,
-            appliesToSubtotal: charge.appliesToSubtotal
-          }))
+          bundle.charges
+            .filter((charge) => !isInstallationChargeName(charge.name))
+            .map((charge) => ({
+              key: newKey(),
+              name: charge.name,
+              type: charge.type,
+              value: charge.value,
+              appliesToSubtotal: charge.appliesToSubtotal
+            }))
         )
 
         const template = await window.api.quotationTemplates.get(bundle.templateId)
@@ -357,6 +401,41 @@ export default function QuotationEditorPage(): React.JSX.Element {
     setCustomFieldValues((prev) => ({ ...prev, [key]: value }))
   }
 
+  // Item-table header labels are editable per quotation (stored as JSON in a hidden field).
+  const headerOverrides = parseTableHeaderOverrides(
+    customFieldValues[TABLE_HEADERS_FIELD_KEY],
+    true
+  )
+  // Column headers are fixed; only category headings (below) are editable.
+  const headerLabel = (key: string): string => DEFAULT_TABLE_HEADER_LABELS[key] ?? ''
+  const setHeaderLabel = (key: string, value: string): void => {
+    setCustomFieldValues((prev) => {
+      const current = parseTableHeaderOverrides(prev[TABLE_HEADERS_FIELD_KEY], true)
+      const next = { ...current, [key]: value }
+      return { ...prev, [TABLE_HEADERS_FIELD_KEY]: JSON.stringify(next) }
+    })
+  }
+  // Category band labels are editable too. Overrides share the header JSON under
+  // `category:<raw category>` keys, so the category itself (used for pricing logic) is untouched.
+  const categoryKey = (category: string): string => `category:${category}`
+  const categoryInput = (category: string, defaultLabel: string): React.JSX.Element => (
+    <input
+      className="qe-cat-input"
+      value={headerOverrides[categoryKey(category)] ?? defaultLabel}
+      aria-label="Category heading"
+      onChange={(event) => setHeaderLabel(categoryKey(category), event.target.value)}
+      onBlur={(event) => {
+        // Blank on leave resets the heading to its default label.
+        if (event.target.value.trim()) return
+        setCustomFieldValues((prev) => {
+          const next = parseTableHeaderOverrides(prev[TABLE_HEADERS_FIELD_KEY], true)
+          delete next[categoryKey(category)]
+          return { ...prev, [TABLE_HEADERS_FIELD_KEY]: JSON.stringify(next) }
+        })
+      }}
+    />
+  )
+
   // Keep the finish value valid for the selected material.
   const allowedFinishes = MATERIAL_FINISHES[baseMaterialValue]
   const currentFinish = String(customFieldValues.finish ?? '')
@@ -412,12 +491,6 @@ export default function QuotationEditorPage(): React.JSX.Element {
       .map((line) => {
         const product = byCode.get(line.itemCode)
         if (!product) return null
-        const subtypeOptions = KITCHEN_SUBTYPES_BY_CODE[line.itemCode]
-        const defaultSubtype = subtypeOptions
-          ? subtypeOptions.includes(line.name)
-            ? line.name
-            : subtypeOptions[0]
-          : ''
         return {
           key: newKey(),
           productId: product.id,
@@ -430,9 +503,9 @@ export default function QuotationEditorPage(): React.JSX.Element {
             description: line.name,
             specs: product.description ?? '',
             unit: line.unit,
-            image: product.imagePath ?? '',
+            image: product.imagePath || `products/kitchen/${line.image}`,
             category: kitchenGroupLabel(line.group),
-            subtype: defaultSubtype
+            subtype: defaultCatalogSubtype(line)
           }
         }
       })
@@ -450,10 +523,9 @@ export default function QuotationEditorPage(): React.JSX.Element {
       return untouched ? rows : prev
     })
     // Default document discount per quote type (Tendam 25%, Basket 10%).
-    const subtotal = rows.reduce((sum, row) => sum + row.qty * row.rate, 0)
     const pct = QUOTE_TYPE_DISCOUNT_PERCENT[quoteTypeValue] ?? 0
     if (applied || !firstLoad) {
-      setDiscountTotal(Math.round(subtotal * pct) / 100)
+      setDiscountPercent(pct)
     }
   }, [editingId, products, quoteTypeValue])
 
@@ -480,7 +552,6 @@ export default function QuotationEditorPage(): React.JSX.Element {
         patch.rate = handle.rate
         patch.columnValues = {
           ...patch.columnValues,
-          description: subtype,
           unit: handle.unit,
           image: HANDLE_IMAGES[subtype]
             ? `products/kitchen/${HANDLE_IMAGES[subtype]}`
@@ -488,27 +559,132 @@ export default function QuotationEditorPage(): React.JSX.Element {
         }
       }
     }
+    if (group === 'topedge') {
+      const edge = TOP_EDGE_OPTIONS[subtype]
+      if (edge) {
+        patch.rate = edge.rate
+        patch.columnValues = {
+          ...patch.columnValues,
+          unit: edge.unit,
+          image: `products/kitchen/${edge.image}`
+        }
+      }
+    }
+    if (group === 'corner') {
+      const corner = COMMON_UNIT_OPTIONS[subtype]
+      if (corner) {
+        patch.rate = corner.rate
+        patch.columnValues = {
+          ...patch.columnValues,
+          description: 'Corner Unit',
+          unit: corner.unit,
+          image: `products/kitchen/${corner.image}`
+        }
+      }
+    }
+    if (group === 'pantry') {
+      const pantryImage = PANTRY_IMAGES[subtype]
+      if (pantryImage) {
+        patch.columnValues = {
+          ...patch.columnValues,
+          image: `products/kitchen/${pantryImage}`
+        }
+      }
+    }
     updateItem(item.key, patch)
   }
 
-  const totals = useMemo(
+  // Saved quotes from before images were bundled have an empty image path.
+  useEffect(() => {
+    if (products.length === 0) return
+    setItems((prev) => {
+      let changed = false
+      const next = prev.flatMap((item) => {
+        if (!item.productId) return [item]
+        const product = products.find((row) => row.id === item.productId)
+        const image = String(item.columnValues?.image ?? '')
+        let description = String(item.columnValues?.description ?? '')
+        let subtype = String(item.columnValues?.subtype ?? '')
+        let category = String(item.columnValues?.category ?? '')
+        if (product?.itemCode === 'TD-JG' && description === 'J/G Handle') description = 'Handle'
+        if (product?.itemCode === 'TD-JG' && (subtype === 'J/G Handle' || subtype === '')) {
+          subtype = 'J Handle'
+        }
+        if (product?.itemCode === 'TD-TOPAGE') {
+          if (subtype === 'Top Edge Square' || subtype === 'J/G Handle' || subtype === '') subtype = 'Square'
+          else if (subtype === 'Top Edge Curve') subtype = 'Curve'
+        }
+        if (/^SLEEK\s+/i.test(category)) category = category.replace(/^SLEEK\s+/i, '')
+        const nextImage = image || product?.imagePath || ''
+        if (
+          nextImage === image &&
+          description === String(item.columnValues?.description ?? '') &&
+          subtype === String(item.columnValues?.subtype ?? '') &&
+          category === String(item.columnValues?.category ?? '')
+        ) {
+          return [item]
+        }
+        changed = true
+        return [
+          {
+            ...item,
+            columnValues: {
+              ...item.columnValues,
+              image: nextImage,
+              description,
+              subtype,
+              category
+            }
+          }
+        ]
+      })
+      const commonProduct = products.find((row) => row.itemCode === 'TD-COMMON')
+      const folded = foldCommonUnitItems(
+        next,
+        (item) => products.find((row) => row.id === item.productId)?.itemCode,
+        commonProduct?.id
+      )
+      if (!changed && folded === next) return prev
+      return folded
+    })
+  }, [products, items])
+
+  const totals = useMemo(() => {
+    const lines = items.map((item) => ({
+      qty: item.qty,
+      rate: item.rate,
+      discount: item.discount ?? 0,
+      discountType: item.discountType ?? 'fixed' as const
+    }))
+    const chargeInputs = charges.map((charge) => ({
+      type: charge.type,
+      value: charge.value,
+      appliesToSubtotal: charge.appliesToSubtotal ?? true
+    }))
+    const gross = calculateQuotationTotals(lines, chargeInputs, 0)
+    const discountTotal = roundMoney((gross.subtotal * discountPercent) / 100)
+    const base = calculateQuotationTotals(lines, chargeInputs, discountTotal)
+    const installation = roundMoney(Math.max(0, Math.min(installationAmount, 100_000_000)))
+    return { ...base, grandTotal: roundMoney(base.grandTotal + installation) }
+  }, [items, charges, discountPercent, installationAmount])
+
+  const plySqft = useMemo(
     () =>
-      calculateQuotationTotals(
+      plySquareFeet(
         items.map((item) => ({
+          itemCode: products.find((row) => row.id === item.productId)?.itemCode,
           qty: item.qty,
-          rate: item.rate,
-          discount: item.discount ?? 0,
-          discountType: item.discountType ?? 'fixed'
-        })),
-        charges.map((charge) => ({
-          type: charge.type,
-          value: charge.value,
-          appliesToSubtotal: charge.appliesToSubtotal ?? true
-        })),
-        discountTotal
+          unit: String(item.columnValues?.unit ?? ''),
+          category: String(item.columnValues?.category ?? '')
+        }))
       ),
-    [items, charges, discountTotal]
+    [items, products]
   )
+
+  useEffect(() => {
+    if (installationTouched) return
+    setInstallationAmount(roundMoney(plySqft * INSTALLATION_RATE_PER_SQFT))
+  }, [plySqft, installationTouched])
 
   const buildPayload = (): Parameters<typeof window.api.quotations.create>[0] => {
     if (templateId === '' || customerId === '') {
@@ -529,12 +705,22 @@ export default function QuotationEditorPage(): React.JSX.Element {
       customerId,
       templateId,
       currency,
-      discountTotal,
+      discountTotal: totals.discountTotal,
       notesInternal,
       notesCustomer,
       customValues,
       items: items.map(({ key: _key, ...item }) => item),
-      charges: charges.map(({ key: _key, ...charge }) => charge)
+      charges: [
+        {
+          name: INSTALLATION_CHARGE_NAME,
+          type: 'fixed' as const,
+          value: roundMoney(Math.max(0, Math.min(installationAmount, 100_000_000))),
+          appliesToSubtotal: true
+        },
+        ...charges
+          .filter((charge) => !isInstallationChargeName(charge.name))
+          .map(({ key: _key, ...charge }) => charge)
+      ]
     }
   }
 
@@ -636,7 +822,6 @@ export default function QuotationEditorPage(): React.JSX.Element {
 
   const selectedCustomer = customers.find((row) => row.id === customerId) ?? null
   const quoteNumber = existing?.quotationNumber || peekNumber || '—'
-  const companyName = company?.name ?? 'SILEX KITCHEN'
   const currencySymbol = currency === 'INR' ? '₹' : currency
 
   const categoryOptions = useMemo(() => {
@@ -652,11 +837,10 @@ export default function QuotationEditorPage(): React.JSX.Element {
   const materialField = fieldByKey.get('baseMaterial')
   const finishField = fieldByKey.get('finish')
 
-  const formatMoney = (value: number): string =>
-    `${currencySymbol} ${value.toLocaleString('en-IN', {
-      minimumFractionDigits: 2,
-      maximumFractionDigits: 2
-    })}`
+  const formatMoney = (value: number): string => {
+    const rounded = roundMoney(value)
+    return `${currencySymbol} ${rounded.toLocaleString('en-IN', { maximumFractionDigits: 2 })}`
+  }
 
   return (
     <PageShell
@@ -701,6 +885,20 @@ export default function QuotationEditorPage(): React.JSX.Element {
                 }}
               >
                 Export PDF
+              </Button>
+              <Button
+                variant="outlined"
+                startIcon={<FileDownloadOutlinedIcon />}
+                disabled={saving}
+                onClick={() => {
+                  void window.api.documents
+                    .exportCsv(editingId)
+                    .catch((err: unknown) =>
+                      setError(err instanceof Error ? err.message : 'CSV export failed')
+                    )
+                }}
+              >
+                Export CSV
               </Button>
               <Button
                 variant="outlined"
@@ -760,17 +958,17 @@ export default function QuotationEditorPage(): React.JSX.Element {
       {/* The quotation document — edited in place */}
       <div className="qe-shell">
         <article className="qe-page">
-          {letterhead && <img className="qe-letterhead" src={letterhead} alt="" />}
-
-          <header className="qe-header">
-            <div>
-              <div className="qe-company">{companyName}</div>
-              <div className="qe-muted">Tax: GST 18% applicable</div>
+          <SilexLetterhead logoDataUrl={headerBrand} />
+          <hr className="silex-letterhead-rule" />
+          <div className="qe-quote-title-block">
+            <div className="qe-quote-title-left">
+              <h2 className="qe-quote-brand">SILEX KITCHEN</h2>
             </div>
-            <div className="qe-meta">
+            <div className="qe-quote-title-right">
               <h2>QUOTATION</h2>
               <div className="qe-meta-line">
                 <strong>Quote No.</strong> {quoteNumber}
+                {existing && existing.revisionNumber > 0 ? ` (R${existing.revisionNumber})` : ''}
               </div>
               <div className="qe-meta-line">
                 <strong>Date</strong>{' '}
@@ -781,7 +979,7 @@ export default function QuotationEditorPage(): React.JSX.Element {
                 />
               </div>
             </div>
-          </header>
+          </div>
 
           <div className="qe-grid">
             <section className="qe-block">
@@ -976,13 +1174,13 @@ export default function QuotationEditorPage(): React.JSX.Element {
           <table className="qe-table">
             <thead>
               <tr>
-                <th style={{ width: '2.4rem' }}>Sr.No.</th>
-                <th style={{ width: '3.4rem' }}>Image</th>
-                <th>Description</th>
-                <th style={{ width: '4.4rem' }}>Qty</th>
-                <th style={{ width: '4.4rem' }}>Unit</th>
-                <th style={{ width: '5.4rem' }}>Rate</th>
-                <th style={{ width: '6.4rem' }}>Total</th>
+                <th style={{ width: '2.4rem' }}>{headerLabel('srNo')}</th>
+                <th style={{ width: '3.4rem' }}>{headerLabel('image')}</th>
+                <th>{headerLabel('description')}</th>
+                <th style={{ width: '4.4rem' }}>{headerLabel('qty')}</th>
+                <th style={{ width: '4.4rem' }}>{headerLabel('unit')}</th>
+                <th style={{ width: '5.4rem' }}>{headerLabel('rate')}</th>
+                <th style={{ width: '6.4rem' }}>{headerLabel('amount')}</th>
                 <th style={{ width: '2rem' }} />
               </tr>
             </thead>
@@ -1006,9 +1204,34 @@ export default function QuotationEditorPage(): React.JSX.Element {
                   <Fragment key={item.key}>
                     {showBand && (
                       <tr className="qe-cat-row">
-                        <td colSpan={8}>
-                          {displayCategory(category, baseMaterialValue, coercedFinish)}
+                        <td colSpan={4}>
+                          {/SHUTTER|CABINET/i.test(category) && !/ROLLING/i.test(category) ? (
+                            categoryInput(
+                              category,
+                              displayCategory(category, baseMaterialValue, coercedFinish)
+                            )
+                          ) : (
+                            <input
+                              className="qe-cat-input"
+                              value={category}
+                              aria-label="Category"
+                              onChange={(event) => {
+                                const next = event.target.value
+                                setItems((prev) =>
+                                  prev.map((row) =>
+                                    String(row.columnValues?.category ?? '') === category
+                                      ? {
+                                          ...row,
+                                          columnValues: { ...row.columnValues, category: next }
+                                        }
+                                      : row
+                                  )
+                                )
+                              }}
+                            />
+                          )}
                         </td>
+                        <td colSpan={4} aria-hidden />
                       </tr>
                     )}
                     <tr>
@@ -1035,6 +1258,17 @@ export default function QuotationEditorPage(): React.JSX.Element {
                             })
                           }
                         />
+                        <input
+                          className="qe-subtype qe-specs"
+                          aria-label="Sub description"
+                          placeholder="Sub description"
+                          value={String(item.columnValues?.specs ?? '')}
+                          onChange={(event) =>
+                            updateItem(item.key, {
+                              columnValues: { ...item.columnValues, specs: event.target.value }
+                            })
+                          }
+                        />
                         {subtypeOptions && (
                           <select
                             className="qe-subtype"
@@ -1051,13 +1285,32 @@ export default function QuotationEditorPage(): React.JSX.Element {
                       </td>
                       <td>
                         <input
-                          type="number"
-                          min={0}
-                          step="0.1"
-                          value={item.qty}
-                          onChange={(event) =>
-                            updateItem(item.key, { qty: Number(event.target.value) })
+                          type="text"
+                          inputMode="decimal"
+                          aria-label="Quantity"
+                          value={
+                            qtyDrafts[item.key] ?? (item.qty === 0 ? '' : String(item.qty))
                           }
+                          onFocus={() => {
+                            if (item.qty === 0) {
+                              setQtyDrafts((prev) => ({ ...prev, [item.key]: '' }))
+                            }
+                          }}
+                          onChange={(event) => {
+                            const raw = event.target.value
+                            const parsed = parseQtyInput(raw)
+                            if (parsed == null) return
+                            setQtyDrafts((prev) => ({ ...prev, [item.key]: raw }))
+                            updateItem(item.key, { qty: parsed })
+                          }}
+                          onBlur={() => {
+                            setQtyDrafts((prev) => {
+                              if (!(item.key in prev)) return prev
+                              const next = { ...prev }
+                              delete next[item.key]
+                              return next
+                            })
+                          }}
                         />
                       </td>
                       <td>
@@ -1132,12 +1385,40 @@ export default function QuotationEditorPage(): React.JSX.Element {
               <span>{formatMoney(totals.subtotal)}</span>
             </div>
             <div className="qe-row">
-              <span>Discount</span>
+              <span>Less discount</span>
+              <span className="qe-percent">
+                <input
+                  type="number"
+                  min={0}
+                  max={100}
+                  step="0.1"
+                  value={discountPercent}
+                  onChange={(event) => setDiscountPercent(Number(event.target.value))}
+                />
+                %
+              </span>
+            </div>
+            <div className="qe-row">
+              <span>Discount amount</span>
+              <span>−{formatMoney(totals.discountTotal)}</span>
+            </div>
+            <div className="qe-row">
+              <span>
+                Installation charges
+                <em className="qe-hint">
+                  {plySqft} shutter sq.ft × {INSTALLATION_RATE_PER_SQFT}
+                </em>
+              </span>
               <input
                 type="number"
                 min={0}
-                value={discountTotal}
-                onChange={(event) => setDiscountTotal(Number(event.target.value))}
+                aria-label="Installation charges"
+                value={installationAmount}
+                onChange={(event) => {
+                  const next = Number(event.target.value)
+                  setInstallationTouched(true)
+                  setInstallationAmount(Number.isFinite(next) ? Math.max(0, next) : 0)
+                }}
               />
             </div>
             {totals.taxTotal > 0 && (
@@ -1396,6 +1677,19 @@ export default function QuotationEditorPage(): React.JSX.Element {
       <Paper variant="outlined" sx={{ p: { xs: 1.5, sm: 2 }, minWidth: 0 }}>
         <Stack spacing={2}>
           <Typography variant="h6">Notes</Typography>
+          {customFields
+            .filter((field) => /note/i.test(field.fieldKey) || /^notes?$/i.test(field.label.trim()))
+            .map((field) => (
+              <TextField
+                key={field.id}
+                label={field.label}
+                value={String(customFieldValues[field.fieldKey] ?? '')}
+                onChange={(event) => setField(field.fieldKey, event.target.value)}
+                fullWidth
+                multiline
+                minRows={2}
+              />
+            ))}
           <TextField
             label="Internal notes"
             value={notesInternal}

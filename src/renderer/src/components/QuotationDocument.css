@@ -1,9 +1,10 @@
 .qd-root {
-  --qd-ink: #1a2421;
-  --qd-muted: #5c6b66;
-  --qd-line: #c5d0cb;
-  --qd-accent: #1b4d3e;
-  --qd-category: #1f7a4c;
+  --qd-ink: #111111;
+  --qd-muted: #666666;
+  --qd-line: #e4c9d6;
+  --qd-accent: #8c2f7c;
+  --qd-category: #8c2f7c;
+  --qd-soft: #fbeaf1;
   position: relative;
   color: var(--qd-ink);
   background: #fff;
@@ -25,24 +26,93 @@
 
 .qd-watermark {
   position: absolute;
-  inset: 0;
+  left: 0;
+  top: 0;
+  right: 0;
+  bottom: 0;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 64pt;
-  font-weight: 700;
-  letter-spacing: 0.08em;
-  color: rgba(27, 77, 62, 0.06);
-  transform: rotate(-28deg);
   pointer-events: none;
   z-index: 0;
+  overflow: hidden;
+}
+
+.qd-watermark-text {
+  display: block;
+  font-size: 48pt;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  color: rgba(0, 0, 0, 0.1);
   text-transform: uppercase;
   white-space: nowrap;
+  transform: rotate(-28deg);
+  transform-origin: center center;
+  max-width: 85%;
+  text-align: center;
+  line-height: 1;
 }
 
 .qd-page > *:not(.qd-watermark) {
   position: relative;
   z-index: 1;
+}
+
+.qd-quote-title-block {
+  display: table;
+  width: 100%;
+  table-layout: fixed;
+  margin: 0 0 14px;
+  page-break-inside: avoid;
+}
+
+.qd-quote-title-left,
+.qd-quote-title-right {
+  display: table-cell;
+  width: 50%;
+  vertical-align: middle;
+}
+
+.qd-quote-title-left {
+  text-align: left;
+  padding-right: 12px;
+}
+
+.qd-quote-title-right {
+  text-align: right;
+  padding-left: 12px;
+}
+
+.qd-quote-title-block h1,
+.qd-quote-brand {
+  margin: 0;
+  font-size: 18pt;
+  letter-spacing: 0.08em;
+  color: var(--qd-accent);
+}
+
+.qd-quote-title-block p {
+  margin: 2px 0;
+  font-size: 10pt;
+}
+
+.qd-billing-terms {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 8px;
+  page-break-inside: avoid;
+}
+
+.qd-billing-terms td {
+  border: 1px solid #c8c8c8;
+  padding: 4px 8px;
+  font-size: 9pt;
+  vertical-align: top;
+}
+
+.qd-billing-terms-title td {
+  color: var(--qd-accent);
+  font-weight: 700;
 }
 
 .qd-letterhead {
@@ -63,7 +133,7 @@
   margin: 8px 0 10px;
   padding: 8px 14px;
   border-left: 4px solid var(--qd-accent);
-  background: #f2f7f4;
+  background: var(--qd-soft);
   max-width: 320px;
   page-break-inside: avoid;
 }
@@ -151,7 +221,7 @@
   font-weight: 700;
   color: var(--qd-ink);
   border: 1px solid var(--qd-line);
-  background: #f2f7f4;
+  background: var(--qd-soft);
   padding: 4px 10px;
 }
 
@@ -177,7 +247,7 @@
   font-weight: 700;
   color: var(--qd-accent);
   border-left: 4px solid var(--qd-accent);
-  background: #f2f7f4;
+  background: var(--qd-soft);
   padding: 8px 12px;
 }
 
@@ -187,6 +257,15 @@
   font-size: 15pt;
   font-weight: 800;
   letter-spacing: 0.1em;
+  color: #8c2f7c;
+}
+
+.qd-about-page-one-slogan {
+  margin: 24px 0 0;
+  text-align: center;
+  font-size: 12pt;
+  font-weight: 800;
+  letter-spacing: 0.08em;
   color: #8c2f7c;
 }
 
@@ -201,7 +280,7 @@
 
 .qd-tnc-company {
   border: 1px solid var(--qd-line);
-  background: #f7faf8;
+  background: var(--qd-soft);
   padding: 8px 10px;
   margin-bottom: 12px;
 }
@@ -391,7 +470,7 @@
 .qd-block {
   border: 1px solid var(--qd-line);
   padding: 8px 10px;
-  background: #f7faf8;
+  background: var(--qd-soft);
 }
 
 .qd-block h2 {
@@ -489,13 +568,13 @@
 
 .qd-table th,
 .qd-table td {
-  border: 1px solid #9eb0a8;
+  border: 1px solid #c8c8c8;
   padding: 5px 6px;
   vertical-align: middle;
 }
 
 .qd-table th {
-  background: #1b4d3e;
+  background: var(--qd-accent);
   color: #fff;
   font-size: 8.5pt;
   text-transform: uppercase;
@@ -504,12 +583,13 @@
 }
 
 .qd-category-row td {
-  background: #e8f3ec;
+  background: var(--qd-soft);
   color: var(--qd-category);
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.03em;
   font-size: 9pt;
+  text-align: center;
   padding: 6px 8px;
 }
 
@@ -537,8 +617,8 @@
   width: 40px;
   height: 40px;
   margin: 0 auto;
-  border: 1px dashed #b7c4be;
-  background: #f3f6f4;
+  border: 1px dashed #c8c8c8;
+  background: var(--qd-soft);
 }
 
 .qd-desc {
@@ -552,8 +632,13 @@
   color: var(--qd-muted);
 }
 
+.qd-tail {
+  break-inside: avoid;
+  page-break-inside: avoid;
+}
+
 .qd-summary {
-  width: 300px;
+  width: 320px;
   margin-left: auto;
   margin-bottom: 16px;
   page-break-inside: avoid;
@@ -618,10 +703,29 @@
   margin-top: 18px;
   padding-top: 10px;
   border-top: 1px solid var(--qd-line);
-  display: grid;
-  grid-template-columns: 1.3fr 1fr;
-  gap: 16px;
+  display: flex;
+  justify-content: flex-end;
   page-break-inside: avoid;
+}
+
+.qd-tnc-bank {
+  margin-top: 16px;
+  border-top: 2px solid var(--qd-accent);
+  padding-top: 10px;
+  page-break-inside: avoid;
+}
+
+.qd-tnc-bank h2 {
+  font-size: 10.5pt;
+  letter-spacing: 0.05em;
+  color: var(--qd-accent);
+  margin: 0 0 6px;
+}
+
+.qd-tnc-bank p {
+  margin: 0 0 4px;
+  white-space: pre-line;
+  font-size: 9.5pt;
 }
 
 .qd-bank h2 {
@@ -648,9 +752,14 @@
   color: var(--qd-muted);
 }
 
+/* Print-only repeating header / watermark are hidden on screen. */
+.qd-print-watermark {
+  display: none;
+}
+
 @media screen {
   .qd-screen-frame {
-    background: #e8ecea;
+    background: #fff;
     padding: 16px 8px 40px;
     min-height: 100%;
     overflow-x: auto;
@@ -682,9 +791,13 @@
   }
 }
 
+/*
+ * The 38mm top margin leaves room for the letterhead, which is a fixed element
+ * (the PDF header template added in main/ipc/documents.ts) on every page.
+ */
 @page {
   size: A4;
-  margin: 10mm;
+  margin: 38mm 10mm 12mm;
 }
 
 @media print {
@@ -705,20 +818,64 @@
   }
 
   .qd-page {
+    position: relative;
     width: auto;
     min-height: auto;
     margin: 0;
     padding: 0;
     box-shadow: none;
+    overflow: hidden;
+    background: transparent;
+  }
+
+  /* Per-block header/watermark are screen-only; print uses the fixed repeating copies. */
+  .qd-screen-only {
+    display: none !important;
+  }
+
+  .qd-print-watermark {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 0;
+    overflow: hidden;
+    pointer-events: none;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
+  .qd-watermark-text {
+    font-size: 42pt;
   }
 
   .qd-cover {
     page-break-after: always;
-    min-height: 96vh;
+    /* A4 (297mm) minus the @page top/bottom margins, so the footer pins to the page bottom. */
+    min-height: 245mm;
   }
 
   .qd-tnc {
     page-break-before: always;
+  }
+
+  .qd-category-row {
+    break-after: avoid;
+    page-break-after: avoid;
+  }
+
+  .qd-category-break {
+    break-before: page;
+    page-break-before: always;
+  }
+
+  .qd-category-break + tr {
+    break-before: avoid;
+    page-break-before: avoid;
   }
 
   .qd-table thead {

@@ -1,13 +1,23 @@
 import type { ItemColumnDefinition, QuotationItem } from '../../../shared/types'
 import type { PrintField, QuotationDocumentModel } from '../../../shared/document'
-import { kitchenGroupLabel } from '../../../shared/metadata'
+import { roundMoney } from '../../../shared/calc'
+import {
+  INSTALLATION_RATE_PER_SQFT,
+  isInstallationChargeName,
+  isQuotationNoteField,
+  kitchenGroupLabel,
+  PRODUCT_SUBTYPES,
+  plySquareFeet
+} from '../../../shared/metadata'
 import { Fragment } from 'react'
 import {
   ABOUT_PAGE_ONE,
-  ABOUT_PAGE_TWO,
+  ABOUT_PAGE_ONE_SLOGAN,
   ABOUT_TAGLINE,
+  BILLING_TABLE_TERMS,
   MODULAR_KITCHEN_TERMS
 } from './silexDocContent'
+import SilexLetterhead from './SilexLetterhead'
 import './QuotationDocument.css'
 
 type Props = {
@@ -19,14 +29,18 @@ type ItemGroup = {
   items: Array<{ item: QuotationItem; index: number }>
 }
 
-function formatMoney(value: number, currency: string): string {
-  const amount = Number.isFinite(value) ? value.toFixed(2) : '0.00'
-  return currency ? `${currency} ${amount}` : amount
-}
-
 function formatPlain(value: number): string {
   if (!Number.isFinite(value)) return '0'
-  return Number.isInteger(value) ? String(value) : value.toFixed(2)
+  return roundMoney(value)
+    .toFixed(2)
+    .replace(/\.?0+$/, '')
+}
+
+function formatMoney(value: number, currency: string): string {
+  const amount = Number.isFinite(value)
+    ? roundMoney(value).toLocaleString('en-IN', { maximumFractionDigits: 2 })
+    : '0'
+  return currency ? `${currency} ${amount}` : amount
 }
 
 function formatDate(iso: string): string {
@@ -91,8 +105,13 @@ function renderItemCell(
     const description = String(item.columnValues?.description ?? '—')
     const specs = String(item.columnValues?.specs ?? '').trim()
     const subtypeRaw = String(item.columnValues?.subtype ?? '').trim()
+    // Drawer brands (e.g. "Hettich") price the row but are not printed in the description.
     const subtype =
-      subtypeRaw && !description.toLowerCase().includes(subtypeRaw.toLowerCase()) ? subtypeRaw : ''
+      subtypeRaw &&
+      !PRODUCT_SUBTYPES.drawer.includes(subtypeRaw) &&
+      !description.toLowerCase().includes(subtypeRaw.toLowerCase())
+        ? subtypeRaw
+        : ''
     return (
       <div className="qd-desc">
         <div>
@@ -131,10 +150,7 @@ function displayCategory(
   if (/CABINET/i.test(category)) {
     return kitchenGroupLabel('cabinet', baseMaterial, finish)
   }
-  if (/(TANDEM|TENDEM)/i.test(category)) {
-    return kitchenGroupLabel('drawer', baseMaterial, finish)
-  }
-  return category
+  return category.replace(/^SLEEK\s+/i, '')
 }
 
 function cleanFieldValue(value: string | undefined): string | undefined {
@@ -166,11 +182,10 @@ export default function QuotationDocument({ model }: Props): React.JSX.Element {
     customer,
     printFields,
     printColumns,
-    terms,
+    tableHeaders: headerOverrides,
     logoDataUrl,
     signatureDataUrl,
-    letterheadDataUrl,
-    bankQrDataUrl,
+    headerBrandDataUrl,
     documentQrs,
     assetDataUrls
   } = model
@@ -183,42 +198,82 @@ export default function QuotationDocument({ model }: Props): React.JSX.Element {
 
   const salesKeys = ['salesExecutive', 'designerName', 'designerContact', 'designerEmail']
   const optionKeys = ['quoteType', 'baseMaterial', 'finish']
+  const noteFields = printFields.filter((field) => isQuotationNoteField(field.fieldKey, field.label))
   const otherFields = printFields.filter(
-    (field) => !salesKeys.includes(field.fieldKey) && !optionKeys.includes(field.fieldKey)
+    (field) =>
+      !salesKeys.includes(field.fieldKey) &&
+      !optionKeys.includes(field.fieldKey) &&
+      !isQuotationNoteField(field.fieldKey, field.label) &&
+      field.value !== '—'
   )
 
   const companyLines = [
     company?.address,
     [company?.phone, company?.email].filter(Boolean).join(' · ') || null,
     company?.website,
-    company?.taxRegNumber ? `Tax: ${company.taxRegNumber}` : null,
     company?.panNumber ? `PAN: ${company.panNumber}` : null
   ].filter(Boolean) as string[]
 
   const customerAddress = customer?.billingAddress || customer?.address || null
   const groups = groupItems(quotation.items)
   const colSpan = printColumns.length + 1
+  const printedNotes = noteFields.filter((field) => field.value && field.value !== '—')
+  const storedInstallation = quotation.charges.find((charge) => isInstallationChargeName(charge.name))
+  const otherCharges = quotation.charges.filter((charge) => !isInstallationChargeName(charge.name))
+  const plySqft = plySquareFeet(
+    quotation.items.map((item) => ({
+      qty: item.qty,
+      unit: String(item.columnValues?.unit ?? ''),
+      category: String(item.columnValues?.category ?? '')
+    }))
+  )
+  const installationAmount = storedInstallation
+    ? storedInstallation.amount
+    : roundMoney(plySqft * INSTALLATION_RATE_PER_SQFT)
+  const displayedGrandTotal = storedInstallation
+    ? quotation.grandTotal
+    : roundMoney(quotation.grandTotal + installationAmount)
 
   const projectName = cleanFieldValue(fields.get('projectName'))
 
+  const watermarkText = company?.name ?? 'QUOTATION'
+
+  // Screen: one watermark per page block. Print: a single fixed copy (see .qd-print-watermark)
+  // that Chromium repeats on every physical page, so long tables never miss it.
   const watermark = (
-    <div className="qd-watermark" aria-hidden>
-      {company?.name ?? 'QUOTATION'}
+    <div className="qd-watermark qd-screen-only" aria-hidden>
+      <span className="qd-watermark-text">{watermarkText}</span>
     </div>
   )
 
-  const pageTop = letterheadDataUrl ? (
-    <img className="qd-letterhead" src={letterheadDataUrl} alt="" />
-  ) : (
-    <header className="qd-header">
-      <div className="qd-brand">
-        {logoDataUrl && <img className="qd-logo" src={logoDataUrl} alt="" />}
-        <div>
-          <p className="qd-company-name">{companyName}</p>
-          {companyLines.length > 0 && <p className="qd-muted">{companyLines.join('\n')}</p>}
+  // Same letterhead component everywhere: in-flow on screen, fixed (repeating) in print.
+  const letterhead = (
+    <>
+      <SilexLetterhead logoDataUrl={headerBrandDataUrl ?? logoDataUrl} />
+      <hr className="silex-letterhead-rule" />
+    </>
+  )
+  const pageTop = <div className="qd-screen-only">{letterhead}</div>
+
+  const quotationHeader = (
+    <>
+      {pageTop}
+      <div className="qd-quote-title-block">
+        <div className="qd-quote-title-left">
+          <h1 className="qd-quote-brand">SILEX KITCHEN</h1>
+        </div>
+        <div className="qd-quote-title-right">
+          <h1>QUOTATION</h1>
+          <p>
+            <strong>Quote No.</strong> {quotation.quotationNumber}
+            {quotation.revisionNumber > 0 ? ` (R${quotation.revisionNumber})` : ''}
+          </p>
+          <p>
+            <strong>Date</strong> {formatDate(quotation.date)}
+          </p>
         </div>
       </div>
-    </header>
+    </>
   )
 
   const pageFooter = (
@@ -236,6 +291,10 @@ export default function QuotationDocument({ model }: Props): React.JSX.Element {
 
   return (
     <div className="qd-root">
+      <div className="qd-print-watermark" aria-hidden>
+        <span className="qd-watermark-text">{watermarkText}</span>
+      </div>
+
       {/* PAGE 1: About Silex Kitchen — To block at top, company profile below */}
       <article className="qd-page qd-cover">
         {watermark}
@@ -278,61 +337,15 @@ export default function QuotationDocument({ model }: Props): React.JSX.Element {
           ))}
         </div>
 
-        {pageFooter}
-      </article>
-
-      {/* PAGE 2: Why choose Silex Kitchen */}
-      <article className="qd-page qd-cover">
-        {watermark}
-        {pageTop}
-
-        <div className="qd-cover-intro">
-          <h2 className="qd-about-heading">{ABOUT_PAGE_TWO.heading}</h2>
-          <p>{ABOUT_PAGE_TWO.intro}</p>
-          <p className="qd-about-promises">{ABOUT_PAGE_TWO.promises}</p>
-          {ABOUT_PAGE_TWO.paragraphs.map((paragraph) => (
-            <p key={paragraph.slice(0, 32)}>{paragraph}</p>
-          ))}
-        </div>
-
-        <div className="qd-about-slogan">{ABOUT_PAGE_TWO.tagline}</div>
+        <div className="qd-about-page-one-slogan">{ABOUT_PAGE_ONE_SLOGAN}</div>
 
         {pageFooter}
       </article>
 
       {/* Quotation document */}
       <article className="qd-page">
-        <div className="qd-watermark" aria-hidden>
-          {company?.name ?? 'QUOTATION'}
-        </div>
-
-        {letterheadDataUrl && <img className="qd-letterhead" src={letterheadDataUrl} alt="" />}
-
-        <header className="qd-header">
-          <div className="qd-brand">
-            {!letterheadDataUrl && logoDataUrl && (
-              <img className="qd-logo" src={logoDataUrl} alt="" />
-            )}
-            <div>
-              <p className="qd-company-name">{companyName}</p>
-              {letterheadDataUrl ? (
-                company?.taxRegNumber && <p className="qd-muted">Tax: {company.taxRegNumber}</p>
-              ) : (
-                companyLines.length > 0 && <p className="qd-muted">{companyLines.join('\n')}</p>
-              )}
-            </div>
-          </div>
-          <div className="qd-meta">
-            <h1>QUOTATION</h1>
-            <p>
-              <strong>Quote No.</strong> {quotation.quotationNumber}
-              {quotation.revisionNumber > 0 ? ` (R${quotation.revisionNumber})` : ''}
-            </p>
-            <p>
-              <strong>Date</strong> {formatDate(quotation.date)}
-            </p>
-          </div>
-        </header>
+        {watermark}
+        {quotationHeader}
 
         <div className="qd-grid-2">
           <section className="qd-block">
@@ -416,7 +429,7 @@ export default function QuotationDocument({ model }: Props): React.JSX.Element {
         <table className="qd-table">
           <thead>
             <tr>
-              <th style={{ width: '2.4rem' }}>Sr.No.</th>
+              <th style={{ width: '2.4rem' }}>{headerOverrides?.srNo ?? 'Sr.No.'}</th>
               {printColumns.map((column) => (
                 <th
                   key={column.id}
@@ -436,10 +449,18 @@ export default function QuotationDocument({ model }: Props): React.JSX.Element {
             ) : (
               groups.map((group) => (
                 <Fragment key={group.category}>
-                  <tr className="qd-category-row">
-                    <td colSpan={colSpan}>
-                      {displayCategory(group.category, baseMaterial, finish)}
+                  <tr
+                    className={
+                      /CABINET/i.test(displayCategory(group.category, baseMaterial, finish))
+                        ? 'qd-category-row qd-category-break'
+                        : 'qd-category-row'
+                    }
+                  >
+                    <td colSpan={Math.min(4, colSpan)}>
+                      {headerOverrides?.[`category:${group.category}`] ??
+                        displayCategory(group.category, baseMaterial, finish)}
                     </td>
+                    {colSpan > 4 ? <td colSpan={colSpan - 4} aria-hidden /> : null}
                   </tr>
                   {group.items.map(({ item }, localIndex) => (
                     <tr key={item.id}>
@@ -460,71 +481,74 @@ export default function QuotationDocument({ model }: Props): React.JSX.Element {
           </tbody>
         </table>
 
-        <div className="qd-summary">
-          <div className="qd-summary-row">
-            <span>Subtotal</span>
-            <span>{formatMoney(quotation.subtotal, currency)}</span>
-          </div>
-          {quotation.discountTotal > 0 && (
+        <div className="qd-tail">
+          <div className="qd-summary">
             <div className="qd-summary-row">
-              <span>Less discount</span>
-              <span>−{formatMoney(quotation.discountTotal, currency)}</span>
+              <span>Subtotal</span>
+              <span>{formatMoney(quotation.subtotal, currency)}</span>
             </div>
-          )}
-          {quotation.charges.map((charge) => (
-            <div className="qd-summary-row" key={charge.id}>
+            {quotation.discountTotal > 0 && (
+              <div className="qd-summary-row">
+                <span>
+                  Less discount
+                  {quotation.subtotal > 0
+                    ? ` (${formatPlain((quotation.discountTotal / quotation.subtotal) * 100)}%)`
+                    : ''}
+                </span>
+                <span>−{formatMoney(quotation.discountTotal, currency)}</span>
+              </div>
+            )}
+            <div className="qd-summary-row">
               <span>
-                {charge.name}
-                {charge.type === 'percentage' ? ` (${formatPlain(charge.value)}%)` : ''}
+                Installation charges
+                {storedInstallation ? '' : ` (${formatPlain(plySqft)} shutter sq.ft × ${INSTALLATION_RATE_PER_SQFT})`}
               </span>
-              <span>{formatMoney(charge.amount, currency)}</span>
+              <span>{formatMoney(installationAmount, currency)}</span>
             </div>
-          ))}
-          <div className="qd-summary-row total">
-            <span>Total Amount</span>
-            <span>{formatMoney(quotation.grandTotal, currency)}</span>
+            {otherCharges.map((charge) => (
+              <div className="qd-summary-row" key={charge.id}>
+                <span>
+                  {charge.name}
+                  {charge.type === 'percentage' ? ` (${formatPlain(charge.value)}%)` : ''}
+                </span>
+                <span>{formatMoney(charge.amount, currency)}</span>
+              </div>
+            ))}
+            <div className="qd-summary-row total">
+              <span>Total Amount</span>
+              <span>{formatMoney(displayedGrandTotal, currency)}</span>
+            </div>
           </div>
+
+          <table className="qd-billing-terms">
+            <tbody>
+              <tr className="qd-billing-terms-title">
+                <td colSpan={2}>Terms and Conditions :</td>
+              </tr>
+              {BILLING_TABLE_TERMS.map((term, index) => (
+                <tr key={term}>
+                  <td colSpan={2}>
+                    {index + 1}. {term}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+
+          {(printedNotes.length > 0 || quotation.notesCustomer) && (
+            <section className="qd-notes">
+              <h2>Notes</h2>
+              {printedNotes.map((field) => (
+                <p className="qd-muted" key={field.fieldKey}>
+                  {field.value}
+                </p>
+              ))}
+              {quotation.notesCustomer && <p className="qd-muted">{quotation.notesCustomer}</p>}
+            </section>
+          )}
         </div>
 
-        {quotation.notesCustomer && (
-          <section className="qd-notes">
-            <h2>Notes</h2>
-            <p className="qd-muted">{quotation.notesCustomer}</p>
-          </section>
-        )}
-
-        {terms.length > 0 && (
-          <section className="qd-terms">
-            <h2>Terms and Conditions</h2>
-            <ol className="qd-terms-list">
-              {terms.map((term) => (
-                <li key={term.title}>
-                  {term.body}
-                </li>
-              ))}
-            </ol>
-          </section>
-        )}
-
         <footer className="qd-footer">
-          <div className="qd-bank">
-            {(company?.bankDetails || company?.footer) && (
-              <>
-                {company.bankDetails && (
-                  <>
-                    <h2>Bank Details</h2>
-                    <div className="qd-bank-flex">
-                      <p className="qd-muted">{company.bankDetails}</p>
-                      {bankQrDataUrl && (
-                        <img className="qd-bank-qr" src={bankQrDataUrl} alt="Payment QR" />
-                      )}
-                    </div>
-                  </>
-                )}
-                {company.footer && <p className="qd-muted">{company.footer}</p>}
-              </>
-            )}
-          </div>
           <div className="qd-signature">
             {signatureDataUrl && <img src={signatureDataUrl} alt="" />}
             <div className="qd-sign-line">
@@ -540,25 +564,6 @@ export default function QuotationDocument({ model }: Props): React.JSX.Element {
         {pageTop}
 
         <h1 className="qd-tnc-title">MODULAR KITCHEN – TERMS &amp; CONDITIONS</h1>
-
-        <dl className="qd-tnc-company qd-dl">
-          <div>
-            <dt>Company Name</dt>
-            <dd>{companyName}</dd>
-          </div>
-          <div>
-            <dt>Address</dt>
-            <dd>{company?.address || '—'}</dd>
-          </div>
-          <div>
-            <dt>Mobile</dt>
-            <dd>{company?.phone || '—'}</dd>
-          </div>
-          <div>
-            <dt>E-mail</dt>
-            <dd>{company?.email || '—'}</dd>
-          </div>
-        </dl>
 
         <div className="qd-tnc-body">
           {MODULAR_KITCHEN_TERMS.map((clause, index) => (
@@ -609,6 +614,14 @@ export default function QuotationDocument({ model }: Props): React.JSX.Element {
             </div>
           </div>
         </div>
+
+        {(company?.bankDetails || company?.footer) && (
+          <div className="qd-tnc-bank">
+            <h2>BANK DETAILS</h2>
+            {company?.bankDetails && <p>{company.bankDetails}</p>}
+            {company?.footer && <p>{company.footer}</p>}
+          </div>
+        )}
 
         {documentQrs.length > 0 && (
           <div className="qd-tnc-qrs">

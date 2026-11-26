@@ -7,6 +7,8 @@ import { migrate } from 'drizzle-orm/better-sqlite3/migrator'
 import * as schema from './schema'
 import {
   ensureDefaultItemFormatColumns,
+  ensureCatalogProducts,
+  ensureKitchenProductImages,
   ensureKitchenQuoteCustomFields,
   seedClientDemoPrototype,
   seedDefaultQuotationTemplate
@@ -48,6 +50,8 @@ export function initDatabase(): BetterSQLite3Database<typeof schema> {
   ensureDefaultItemFormatColumns(db)
   ensureKitchenQuoteCustomFields(db)
   seedClientDemoPrototype(db)
+  ensureCatalogProducts(db)
+  ensureKitchenProductImages(db)
 
   return db
 }

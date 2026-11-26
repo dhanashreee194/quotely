@@ -316,6 +316,7 @@ export type Quotation = {
   notesCustomer: string | null
   parentQuotationId: number | null
   revisionNumber: number
+  deletedAt: string | null
   createdBy: string | null
   createdAt: string
   updatedAt: string

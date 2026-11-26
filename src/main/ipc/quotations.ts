@@ -1,4 +1,4 @@
-import { and, asc, desc, eq, gte, like, lte, or, sql, type SQL } from 'drizzle-orm'
+import { and, asc, desc, eq, gte, isNotNull, isNull, like, lte, type SQL } from 'drizzle-orm'
 import { calculateQuotationTotals } from '../../shared/calc'
 import type { QuotationListFilters } from '../../shared/dataManagement'
 import { isReservedQuotationFieldKey } from '../../shared/metadata'
@@ -27,6 +27,12 @@ import { allocateQuotationNumber } from './numbering'
 
 function now(): string {
   return new Date().toISOString()
+}
+
+function assertQuotationId(id: number): void {
+  if (!Number.isInteger(id) || id <= 0) {
+    throw new Error('Invalid quotation')
+  }
 }
 
 function emptyToNull(value?: string | null): string | null {
@@ -276,6 +282,7 @@ export async function listQuotations(
   if (normalized.amountMax != null && Number.isFinite(normalized.amountMax)) {
     conditions.push(lte(quotations.grandTotal, normalized.amountMax))
   }
+  conditions.push(normalized.bin ? isNotNull(quotations.deletedAt) : isNull(quotations.deletedAt))
 
   const base = db
     .select({
@@ -407,16 +414,46 @@ export async function finalizeQuotation(id: number): Promise<QuotationBundle> {
 }
 
 export async function removeQuotation(id: number): Promise<void> {
+  assertQuotationId(id)
   const db = getDatabase()
   const existing = db.select().from(quotations).where(eq(quotations.id, id)).get()
-  db.delete(quotations).where(eq(quotations.id, id)).run()
-  if (existing) {
-    recordAudit({
-      action: 'delete',
-      entityType: 'quotation',
-      entityId: existing.quotationNumber
-    })
+  if (!existing) throw new Error('Quotation not found')
+  if (existing.deletedAt) return
+  db.update(quotations)
+    .set({ deletedAt: now(), updatedAt: now() })
+    .where(eq(quotations.id, id))
+    .run()
+  recordAudit({
+    action: 'delete',
+    entityType: 'quotation',
+    entityId: existing.quotationNumber,
+    user: existing.createdBy
+  })
+}
+
+export async function restoreQuotation(id: number): Promise<QuotationBundle> {
+  assertQuotationId(id)
+  const db = getDatabase()
+  const existing = db.select().from(quotations).where(eq(quotations.id, id)).get()
+  if (!existing) throw new Error('Quotation not found')
+  if (!existing.deletedAt) {
+    const current = loadBundle(id)
+    if (!current) throw new Error('Quotation not found')
+    return current
   }
+  db.update(quotations)
+    .set({ deletedAt: null, updatedAt: now() })
+    .where(eq(quotations.id, id))
+    .run()
+  const bundle = loadBundle(id)
+  if (!bundle) throw new Error('Quotation not found')
+  recordAudit({
+    action: 'restore',
+    entityType: 'quotation',
+    entityId: existing.quotationNumber,
+    user: existing.createdBy
+  })
+  return bundle
 }
 
 function bundleToInput(bundle: QuotationBundle, overrides?: Partial<QuotationInput>): QuotationInput {
@@ -454,6 +491,7 @@ function bundleToInput(bundle: QuotationBundle, overrides?: Partial<QuotationInp
 export async function duplicateQuotation(id: number): Promise<QuotationBundle> {
   const source = loadBundle(id)
   if (!source) throw new Error('Quotation not found')
+  if (source.deletedAt) throw new Error('Restore this quotation from the bin before duplicating it')
 
   const newId = await insertQuotationWithNumber(bundleToInput(source, { status: 'Draft' }), {
     status: 'Draft',
@@ -472,37 +510,25 @@ export async function duplicateQuotation(id: number): Promise<QuotationBundle> {
 }
 
 export async function reviseQuotation(id: number): Promise<QuotationBundle> {
+  assertQuotationId(id)
   const db = getDatabase()
   const source = loadBundle(id)
   if (!source) throw new Error('Quotation not found')
+  if (source.deletedAt) throw new Error('Restore this quotation from the bin before revising it')
 
-  const rootId = source.parentQuotationId ?? source.id
-  const maxRevision = db
-    .select({ value: sql<number>`coalesce(max(${quotations.revisionNumber}), 0)` })
-    .from(quotations)
-    .where(or(eq(quotations.id, rootId), eq(quotations.parentQuotationId, rootId)))
-    .get()
-
-  const nextRevision = (maxRevision?.value ?? source.revisionNumber) + 1
-
-  // Mark original lineage tip as Revised when creating a new revision from it.
+  const nextRevision = source.revisionNumber + 1
   db.update(quotations)
-    .set({ status: 'Revised', updatedAt: now() })
+    .set({ revisionNumber: nextRevision, updatedAt: now() })
     .where(eq(quotations.id, id))
     .run()
 
-  const newId = await insertQuotationWithNumber(bundleToInput(source, { status: 'Draft' }), {
-    status: 'Draft',
-    parentQuotationId: rootId,
-    revisionNumber: nextRevision
-  })
-
-  const bundle = loadBundle(newId)
+  const bundle = loadBundle(id)
   if (!bundle) throw new Error('Failed to revise quotation')
   recordAudit({
     action: 'revise',
     entityType: 'quotation',
-    entityId: `${id}->${bundle.id}`
+    entityId: `${bundle.quotationNumber}:R${nextRevision}`,
+    user: bundle.createdBy
   })
   return bundle
 }

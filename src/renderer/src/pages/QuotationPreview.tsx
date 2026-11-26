@@ -7,6 +7,7 @@ import CircularProgress from '@mui/material/CircularProgress'
 import Stack from '@mui/material/Stack'
 import Typography from '@mui/material/Typography'
 import ArrowBackIcon from '@mui/icons-material/ArrowBack'
+import FileDownloadOutlinedIcon from '@mui/icons-material/FileDownloadOutlined'
 import PictureAsPdfIcon from '@mui/icons-material/PictureAsPdf'
 import PrintIcon from '@mui/icons-material/Print'
 import type { QuotationDocumentModel } from '../../../shared/document'
@@ -23,7 +24,7 @@ export default function QuotationPreviewPage(): React.JSX.Element {
 
   const [model, setModel] = useState<QuotationDocumentModel | null>(null)
   const [error, setError] = useState('')
-  const [busy, setBusy] = useState<'pdf' | 'print' | null>(null)
+  const [busy, setBusy] = useState<'pdf' | 'csv' | 'print' | null>(null)
 
   const load = useCallback(async (): Promise<void> => {
     if (!Number.isFinite(quotationId) || quotationId <= 0) {
@@ -98,6 +99,18 @@ export default function QuotationPreviewPage(): React.JSX.Element {
     }
   }
 
+  const handleExportCsv = async (): Promise<void> => {
+    setBusy('csv')
+    setError('')
+    try {
+      await window.api.documents.exportCsv(quotationId)
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'CSV export failed')
+    } finally {
+      setBusy(null)
+    }
+  }
+
   const handlePrint = async (): Promise<void> => {
     setBusy('print')
     setError('')
@@ -164,6 +177,14 @@ export default function QuotationPreviewPage(): React.JSX.Element {
               onClick={() => void handleExportPdf()}
             >
               {busy === 'pdf' ? 'Exporting…' : 'Export PDF'}
+            </Button>
+            <Button
+              variant="outlined"
+              startIcon={<FileDownloadOutlinedIcon />}
+              disabled={busy != null || !model}
+              onClick={() => void handleExportCsv()}
+            >
+              {busy === 'csv' ? 'Exporting…' : 'Export CSV'}
             </Button>
             <Button
               variant="contained"

@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react'
+import { Fragment, useCallback, useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import Alert from '@mui/material/Alert'
 import Button from '@mui/material/Button'
@@ -24,6 +24,7 @@ import DeleteOutlinedIcon from '@mui/icons-material/DeleteOutlined'
 import EditOutlinedIcon from '@mui/icons-material/EditOutlined'
 import FileDownloadOutlinedIcon from '@mui/icons-material/FileDownloadOutlined'
 import HistoryIcon from '@mui/icons-material/History'
+import RestoreFromTrashOutlinedIcon from '@mui/icons-material/RestoreFromTrashOutlined'
 import PictureAsPdfIcon from '@mui/icons-material/PictureAsPdf'
 import PrintIcon from '@mui/icons-material/Print'
 import VisibilityOutlinedIcon from '@mui/icons-material/VisibilityOutlined'
@@ -73,6 +74,7 @@ export default function QuotationsPage(): React.JSX.Element {
   const [rows, setRows] = useState<QuotationListItem[]>([])
   const [customers, setCustomers] = useState<Customer[]>([])
   const [error, setError] = useState('')
+  const [showBin, setShowBin] = useState(false)
   const [debouncedSearch, setDebouncedSearch] = useState(search)
 
   useEffect(() => {
@@ -88,12 +90,13 @@ export default function QuotationsPage(): React.JSX.Element {
     try {
       const filters = toFilters()
       filters.search = debouncedSearch.trim() || undefined
+      filters.bin = showBin
       setRows(await window.api.quotations.list(filters))
       setError('')
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to load quotations')
     }
-  }, [debouncedSearch, toFilters, customerId, status, dateFrom, dateTo, amountMin, amountMax])
+  }, [debouncedSearch, toFilters, customerId, status, dateFrom, dateTo, amountMin, amountMax, showBin])
 
   useEffect(() => {
     void load()
@@ -103,10 +106,21 @@ export default function QuotationsPage(): React.JSX.Element {
 
   return (
     <PageShell
-      title="Quotations"
-      subtitle="Create, finalize, duplicate, and revise customer quotations."
+      title={showBin ? 'Deleted quotations' : 'Quotations'}
+      subtitle={
+        showBin
+          ? 'Restore a deleted quotation to move it back into your active list.'
+          : 'Create, finalize, duplicate, and revise customer quotations. Revisions keep the same quote number.'
+      }
       actions={
         <>
+          <Button
+            variant={showBin ? 'contained' : 'outlined'}
+            startIcon={<RestoreFromTrashOutlinedIcon />}
+            onClick={() => setShowBin((open) => !open)}
+          >
+            {showBin ? 'Back to quotations' : 'Restore deleted'}
+          </Button>
           <Button
             variant="outlined"
             startIcon={<FileDownloadOutlinedIcon />}
@@ -118,7 +132,7 @@ export default function QuotationsPage(): React.JSX.Element {
                 )
             }}
           >
-            Export CSV
+            Export all CSV
           </Button>
           <Button
             variant="contained"
@@ -260,7 +274,11 @@ export default function QuotationsPage(): React.JSX.Element {
             {rows.length === 0 && (
               <TableRow>
                 <TableCell colSpan={showSecondaryCols ? 7 : 6}>
-                  <Typography color="text.secondary">No quotations match these filters.</Typography>
+                  <Typography color="text.secondary">
+                    {showBin
+                      ? 'No deleted quotations to restore.'
+                      : 'No quotations match these filters.'}
+                  </Typography>
                 </TableCell>
               </TableRow>
             )}
@@ -301,6 +319,25 @@ export default function QuotationsPage(): React.JSX.Element {
                 </TableCell>
                 <TableCell align="right">{row.grandTotal.toFixed(2)}</TableCell>
                 <TableCell align="right" sx={{ whiteSpace: 'nowrap' }}>
+                  {showBin ? (
+                    <Button
+                      size="small"
+                      variant="outlined"
+                      startIcon={<RestoreFromTrashOutlinedIcon fontSize="small" />}
+                      onClick={() => {
+                        void window.api.quotations
+                          .restore(row.id)
+                          .then(load)
+                          .catch((err: unknown) =>
+                            setError(err instanceof Error ? err.message : 'Restore failed')
+                          )
+                      }}
+                    >
+                      Restore
+                    </Button>
+                  ) : null}
+                  {!showBin && (
+                  <Fragment>
                   <IconButton
                     aria-label="Edit"
                     size="small"
@@ -327,6 +364,19 @@ export default function QuotationsPage(): React.JSX.Element {
                     }}
                   >
                     <PictureAsPdfIcon fontSize="small" />
+                  </IconButton>
+                  <IconButton
+                    aria-label="Export CSV"
+                    size="small"
+                    onClick={() => {
+                      void window.api.documents
+                        .exportCsv(row.id)
+                        .catch((err: unknown) =>
+                          setError(err instanceof Error ? err.message : 'CSV export failed')
+                        )
+                    }}
+                  >
+                    <FileDownloadOutlinedIcon fontSize="small" />
                   </IconButton>
                   <IconButton
                     aria-label="Print"
@@ -373,7 +423,7 @@ export default function QuotationsPage(): React.JSX.Element {
                     aria-label="Delete"
                     size="small"
                     onClick={() => {
-                      if (!window.confirm('Delete this quotation?')) return
+                      if (!window.confirm('Move this quotation to the bin? You can restore it later.')) return
                       void window.api.quotations
                         .remove(row.id)
                         .then(load)
@@ -384,6 +434,8 @@ export default function QuotationsPage(): React.JSX.Element {
                   >
                     <DeleteOutlinedIcon fontSize="small" />
                   </IconButton>
+                  </Fragment>
+                  )}
                 </TableCell>
               </TableRow>
             ))}

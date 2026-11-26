@@ -67,12 +67,14 @@ export const IpcChannels = {
   quotationsSetStatus: 'quotations:setStatus',
   quotationsDuplicate: 'quotations:duplicate',
   quotationsRevise: 'quotations:revise',
+  quotationsRestore: 'quotations:restore',
   numberingGet: 'numbering:get',
   numberingUpdate: 'numbering:update',
   numberingPeek: 'numbering:peek',
 
   documentsGetModel: 'documents:getModel',
   documentsExportPdf: 'documents:exportPdf',
+  documentsExportCsv: 'documents:exportCsv',
   documentsPrint: 'documents:print',
   documentsReady: 'documents:ready',
 

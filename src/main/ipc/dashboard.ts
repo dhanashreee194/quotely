@@ -1,4 +1,4 @@
-import { and, desc, eq, gte, lt, sql } from 'drizzle-orm'
+import { and, desc, eq, gte, isNull, lt, sql } from 'drizzle-orm'
 import {
   emptyDashboardSummary,
   getDashboardDateBounds,
@@ -24,6 +24,7 @@ export async function getDashboardSummary(): Promise<DashboardSummary> {
       totalValueAllTime: sql<number>`coalesce(sum(${quotations.grandTotal}), 0)`
     })
     .from(quotations)
+    .where(isNull(quotations.deletedAt))
     .get()
 
   const total = asNumber(totals?.total)
@@ -34,6 +35,7 @@ export async function getDashboardSummary(): Promise<DashboardSummary> {
   const currencyRow = db
     .select({ currency: quotations.currency })
     .from(quotations)
+    .where(isNull(quotations.deletedAt))
     .orderBy(desc(quotations.updatedAt))
     .limit(1)
     .get()
@@ -45,6 +47,7 @@ export async function getDashboardSummary(): Promise<DashboardSummary> {
       .from(quotations)
       .where(
         and(
+          isNull(quotations.deletedAt),
           gte(quotations.createdAt, bounds.todayStartIso),
           lt(quotations.createdAt, bounds.tomorrowStartIso)
         )
@@ -58,6 +61,7 @@ export async function getDashboardSummary(): Promise<DashboardSummary> {
       .from(quotations)
       .where(
         and(
+          isNull(quotations.deletedAt),
           gte(quotations.createdAt, bounds.monthStartIso),
           lt(quotations.createdAt, bounds.nextMonthStartIso)
         )
@@ -73,6 +77,7 @@ export async function getDashboardSummary(): Promise<DashboardSummary> {
       .from(quotations)
       .where(
         and(
+          isNull(quotations.deletedAt),
           gte(quotations.createdAt, bounds.monthStartIso),
           lt(quotations.createdAt, bounds.nextMonthStartIso)
         )
@@ -86,6 +91,7 @@ export async function getDashboardSummary(): Promise<DashboardSummary> {
       count: sql<number>`count(*)`
     })
     .from(quotations)
+    .where(isNull(quotations.deletedAt))
     .groupBy(quotations.status)
     .all()
 
@@ -106,7 +112,13 @@ export async function getDashboardSummary(): Promise<DashboardSummary> {
         value: sql<number>`coalesce(sum(${quotations.grandTotal}), 0)`
       })
       .from(quotations)
-      .where(and(gte(quotations.date, month.dateFrom), lt(quotations.date, month.dateToExclusive)))
+      .where(
+        and(
+          isNull(quotations.deletedAt),
+          gte(quotations.date, month.dateFrom),
+          lt(quotations.date, month.dateToExclusive)
+        )
+      )
       .get()
 
     return {
@@ -128,6 +140,7 @@ export async function getDashboardSummary(): Promise<DashboardSummary> {
     })
     .from(quotations)
     .leftJoin(customers, eq(quotations.customerId, customers.id))
+    .where(isNull(quotations.deletedAt))
     .orderBy(desc(quotations.updatedAt))
     .limit(8)
     .all()

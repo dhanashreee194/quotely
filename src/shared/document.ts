@@ -23,11 +23,15 @@ export type QuotationDocumentModel = {
   customer: Customer | null
   printFields: PrintField[]
   printColumns: ItemColumnDefinition[]
+  /** Edited item-table header labels for this quotation, keyed by column key (+ `srNo`). */
+  tableHeaders: Record<string, string>
   terms: PrintTermsBlock[]
   logoDataUrl: string | null
   signatureDataUrl: string | null
   /** Letterhead banner printed at the top of quote pages (null when not installed). */
   letterheadDataUrl: string | null
+  /** Brand strip used in the quotation page header (null when not installed). */
+  headerBrandDataUrl: string | null
   /** Bank / payment QR code shown next to bank details (null when not installed). */
   bankQrDataUrl: string | null
   /** QR codes printed at the end of the document, below the terms & conditions. */
@@ -51,4 +55,13 @@ export function buildQuotationPdfFilename(
   const numberPart = sanitizeFilenamePart(quotationNumber)
   const customerPart = sanitizeFilenamePart(customerName ?? 'Customer')
   return `Quotation_${numberPart}_${customerPart}.pdf`
+}
+
+export function buildQuotationCsvFilename(
+  quotationNumber: string,
+  customerName: string | null | undefined
+): string {
+  const numberPart = sanitizeFilenamePart(quotationNumber)
+  const customerPart = sanitizeFilenamePart(customerName ?? 'Customer')
+  return `Quotation_${numberPart}_${customerPart}.csv`
 }

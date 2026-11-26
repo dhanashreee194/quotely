@@ -9,6 +9,8 @@ export type QuotationListFilters = {
   dateTo?: string
   amountMin?: number | null
   amountMax?: number | null
+  /** When true, list only quotations in the bin. */
+  bin?: boolean
 }
 
 export type BackupManifest = {

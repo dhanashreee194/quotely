@@ -132,6 +132,7 @@ export type QuotationsApi = {
   setStatus: (id: number, status: QuotationStatus) => Promise<QuotationBundle>
   duplicate: (id: number) => Promise<QuotationBundle>
   revise: (id: number) => Promise<QuotationBundle>
+  restore: (id: number) => Promise<QuotationBundle>
 }
 
 export type BackupApi = {
@@ -162,6 +163,7 @@ export type NumberingApi = {
 export type DocumentsApi = {
   getModel: (quotationId: number) => Promise<QuotationDocumentModel | null>
   exportPdf: (quotationId: number) => Promise<string | null>
+  exportCsv: (quotationId: number) => Promise<string | null>
   print: (quotationId: number) => Promise<boolean>
   notifyReady: () => void
 }

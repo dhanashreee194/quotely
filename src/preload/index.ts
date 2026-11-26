@@ -85,7 +85,8 @@ const api: QuotelyApi = {
     finalize: (id) => ipcRenderer.invoke(IpcChannels.quotationsFinalize, id),
     setStatus: (id, status) => ipcRenderer.invoke(IpcChannels.quotationsSetStatus, id, status),
     duplicate: (id) => ipcRenderer.invoke(IpcChannels.quotationsDuplicate, id),
-    revise: (id) => ipcRenderer.invoke(IpcChannels.quotationsRevise, id)
+    revise: (id) => ipcRenderer.invoke(IpcChannels.quotationsRevise, id),
+    restore: (id) => ipcRenderer.invoke(IpcChannels.quotationsRestore, id)
   },
   numbering: {
     get: () => ipcRenderer.invoke(IpcChannels.numberingGet),
@@ -95,6 +96,7 @@ const api: QuotelyApi = {
   documents: {
     getModel: (quotationId) => ipcRenderer.invoke(IpcChannels.documentsGetModel, quotationId),
     exportPdf: (quotationId) => ipcRenderer.invoke(IpcChannels.documentsExportPdf, quotationId),
+    exportCsv: (quotationId) => ipcRenderer.invoke(IpcChannels.documentsExportCsv, quotationId),
     print: (quotationId) => ipcRenderer.invoke(IpcChannels.documentsPrint, quotationId),
     notifyReady: () => {
       ipcRenderer.send(IpcChannels.documentsReady)

@@ -70,7 +70,7 @@ import {
 } from './numbering'
 import { listAuditActions, listAuditLog } from './audit'
 import { createBackup, pickBackupFile, restoreBackup } from './backup'
-import { exportCsv } from './csvExport'
+import { exportCsv, exportQuotationCsv } from './csvExport'
 import { getDashboardSummary } from './dashboard'
 import {
   exportQuotationPdf,
@@ -84,6 +84,7 @@ import {
   getQuotation,
   listQuotations,
   removeQuotation,
+  restoreQuotation,
   reviseQuotation,
   setQuotationStatus,
   updateQuotation
@@ -233,6 +234,7 @@ export function registerIpcHandlers(): void {
   )
   ipcMain.handle(IpcChannels.quotationsDuplicate, (_event, id: number) => duplicateQuotation(id))
   ipcMain.handle(IpcChannels.quotationsRevise, (_event, id: number) => reviseQuotation(id))
+  ipcMain.handle(IpcChannels.quotationsRestore, (_event, id: number) => restoreQuotation(id))
 
   ipcMain.handle(IpcChannels.numberingGet, () => getNumberingConfig())
   ipcMain.handle(IpcChannels.numberingUpdate, (_event, patch: Partial<NumberingConfig>) =>
@@ -248,6 +250,9 @@ export function registerIpcHandlers(): void {
   )
   ipcMain.handle(IpcChannels.documentsExportPdf, (_event, quotationId: number) =>
     exportQuotationPdf(quotationId)
+  )
+  ipcMain.handle(IpcChannels.documentsExportCsv, (_event, quotationId: number) =>
+    exportQuotationCsv(quotationId)
   )
   ipcMain.handle(IpcChannels.documentsPrint, (_event, quotationId: number) =>
     printQuotation(quotationId)

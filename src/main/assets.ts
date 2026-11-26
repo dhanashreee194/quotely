@@ -5,13 +5,14 @@ import { app, BrowserWindow, dialog } from 'electron'
 import { eq } from 'drizzle-orm'
 import logoAsset from '../../resources/logo.png?asset'
 import letterheadAsset from '../../resources/kitchen/letterhead.jpeg?asset'
+import silexLogoAsset from '../../resources/kitchen/silex-logo.jpeg?asset'
 import bankQrAsset from '../../resources/kitchen/bank-qr.jpeg?asset'
 import addressQrAsset from '../../resources/kitchen/address-qr.jpg?asset'
 import iciciQrAsset from '../../resources/kitchen/icici-qr.jpg?asset'
 import gpayQrAsset from '../../resources/kitchen/gpay-qr.jpg?asset'
 import shutterAsset from '../../resources/kitchen/shutter.jpeg?asset'
 import cabinetAsset from '../../resources/kitchen/cabinet.jpeg?asset'
-import cutleryTrayAsset from '../../resources/kitchen/cutlery-tray.png?asset'
+import cutleryTrayAsset from '../../resources/kitchen/cutlery-tray.jpeg?asset'
 import thaliInletAsset from '../../resources/kitchen/thali-inlet.jpeg?asset'
 import tendemDrawerAsset from '../../resources/kitchen/tendem-drawer.jpeg?asset'
 import potPanDrawerAsset from '../../resources/kitchen/pot-pan-drawer.jpeg?asset'
@@ -24,6 +25,8 @@ import jgHandleAsset from '../../resources/kitchen/jg-handle.jpeg?asset'
 import topageHandleAsset from '../../resources/kitchen/topage-handle.jpeg?asset'
 import hingesAsset from '../../resources/kitchen/hinges.jpeg?asset'
 import pantrySystemAsset from '../../resources/kitchen/pantry-system.jpeg?asset'
+import drawerPantryAsset from '../../resources/kitchen/drawer-pantry.jpeg?asset'
+import spacePantryAsset from '../../resources/kitchen/space-pantry.jpeg?asset'
 import bifoldSystemAsset from '../../resources/kitchen/bifold-system.jpeg?asset'
 import rollingShutterAsset from '../../resources/kitchen/rolling-shutter.jpeg?asset'
 import swingTrayAsset from '../../resources/kitchen/swing-tray.jpeg?asset'
@@ -85,6 +88,9 @@ export function ensureAssetsDir(): string {
 /** Relative asset path of the letterhead banner printed on quote pages. */
 export const LETTERHEAD_RELATIVE = 'branding/letterhead.jpeg'
 
+/** Original logo crop used in the quotation letterhead (from SILEX KITCHEN.docx / letterhead). */
+export const HEADER_BRAND_RELATIVE = 'branding/silex-logo.jpeg'
+
 /** Relative asset path of the bank/payment QR code shown next to bank details. */
 export const BANK_QR_RELATIVE = 'branding/bank-qr.jpeg'
 
@@ -99,6 +105,7 @@ export const DOCUMENT_QRS: Array<{ relative: string; source: string; label: stri
 const KITCHEN_IMAGE_SOURCES: Record<string, string> = {
   'shutter.jpeg': shutterAsset,
   'cabinet.jpeg': cabinetAsset,
+  'cutlery-tray.jpeg': cutleryTrayAsset,
   'cutlery-tray.png': cutleryTrayAsset,
   'thali-inlet.jpeg': thaliInletAsset,
   'tendem-drawer.jpeg': tendemDrawerAsset,
@@ -112,6 +119,8 @@ const KITCHEN_IMAGE_SOURCES: Record<string, string> = {
   'topage-handle.jpeg': topageHandleAsset,
   'hinges.jpeg': hingesAsset,
   'pantry-system.jpeg': pantrySystemAsset,
+  'drawer-pantry.jpeg': drawerPantryAsset,
+  'space-pantry.jpeg': spacePantryAsset,
   'bifold-system.jpeg': bifoldSystemAsset,
   'rolling-shutter.jpeg': rollingShutterAsset,
   'swing-tray.jpeg': swingTrayAsset,
@@ -140,13 +149,19 @@ export function installBundledKitchenAssets(): void {
   ensureAssetsDir()
   for (const [filename, source] of Object.entries(KITCHEN_IMAGE_SOURCES)) {
     const destination = resolveAssetPath(kitchenImageRelativePath(filename))
-    if (!existsSync(destination)) {
+    const bundledIsNewer =
+      !existsSync(destination) || statSync(source).mtimeMs > statSync(destination).mtimeMs
+    if (bundledIsNewer) {
       copyFileSync(source, destination)
     }
   }
   const letterheadDest = resolveAssetPath(LETTERHEAD_RELATIVE)
-  if (!existsSync(letterheadDest)) {
+  if (!existsSync(letterheadDest) || statSync(letterheadAsset).mtimeMs > statSync(letterheadDest).mtimeMs) {
     copyFileSync(letterheadAsset, letterheadDest)
+  }
+  const brandDest = resolveAssetPath(HEADER_BRAND_RELATIVE)
+  if (!existsSync(brandDest) || statSync(silexLogoAsset).mtimeMs > statSync(brandDest).mtimeMs) {
+    copyFileSync(silexLogoAsset, brandDest)
   }
   const bankQrDest = resolveAssetPath(BANK_QR_RELATIVE)
   if (!existsSync(bankQrDest)) {

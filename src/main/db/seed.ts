@@ -365,6 +365,42 @@ function seedTermsIfEmpty(db: BetterSQLite3Database<typeof schema>): void {
  * Backfill kitchen catalog product images / categories on existing installs
  * (matches products by itemCode; only fills missing values).
  */
+/** Insert catalog products that are missing on an existing install (for example Space Corner). */
+export function ensureCatalogProducts(db: BetterSQLite3Database<typeof schema>): void {
+  const existing = db.select().from(products).all()
+  const codes = new Set(existing.map((row) => row.itemCode))
+  const timestamp = now()
+  for (const item of combinedKitchenCatalog()) {
+    if (codes.has(item.itemCode)) continue
+    db.insert(products)
+      .values({
+        itemCode: item.itemCode,
+        name: item.name,
+        description: null,
+        unit: item.unit,
+        imagePath: `products/kitchen/${item.image}`,
+        standardPrice: item.rate,
+        taxPercent: 18,
+        category: kitchenGroupLabel(item.group),
+        hsnSac: null,
+        createdAt: timestamp,
+        updatedAt: timestamp
+      })
+      .run()
+  }
+  for (const row of existing) {
+    if (
+      (row.itemCode === 'TD-MAGIC' || row.itemCode === 'TD-SWING' || row.itemCode === 'TD-SPACE') &&
+      row.category === 'COMMON UNIT'
+    ) {
+      db.update(products)
+        .set({ category: 'TENDEM DRAWERS', updatedAt: timestamp })
+        .where(eq(products.id, row.id))
+        .run()
+    }
+  }
+}
+
 export function ensureKitchenProductImages(db: BetterSQLite3Database<typeof schema>): void {
   const catalog = db.select().from(products).all()
   const byCode = new Map(catalog.map((row) => [row.itemCode, row]))
@@ -372,11 +408,25 @@ export function ensureKitchenProductImages(db: BetterSQLite3Database<typeof sche
     const existing = byCode.get(item.itemCode)
     if (!existing) continue
     const imagePath = `products/kitchen/${item.image}`
-    if (existing.imagePath === imagePath && existing.category) continue
+    const category = existing.category || kitchenGroupLabel(item.group)
+    const bundledKitchenImage =
+      typeof existing.imagePath === 'string' &&
+      /^products\/kitchen\//.test(existing.imagePath)
+    const nextImagePath = bundledKitchenImage ? imagePath : existing.imagePath || imagePath
+    const nextName =
+      existing.name === 'Common Unit' || existing.itemCode === 'TD-COMMON' ? item.name : existing.name
+    if (
+      existing.imagePath === nextImagePath &&
+      existing.category === category &&
+      existing.name === nextName
+    ) {
+      continue
+    }
     db.update(products)
       .set({
-        imagePath: existing.imagePath || imagePath,
-        category: existing.category || kitchenGroupLabel(item.group),
+        imagePath: nextImagePath,
+        category,
+        name: nextName,
         updatedAt: now()
       })
       .where(eq(products.id, existing.id))

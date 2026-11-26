@@ -2,7 +2,7 @@ name: Build Windows
 
 on:
   push:
-    branches: [master, main]
+    branches: [master, main, 'ci/**']
   pull_request:
   workflow_dispatch:
 
@@ -36,6 +36,31 @@ jobs:
           CSC_LINK: ${{ secrets.CSC_LINK }}
           CSC_KEY_PASSWORD: ${{ secrets.CSC_KEY_PASSWORD }}
         run: npm run build:win
+
+      - name: Silent install and launch smoke test
+        shell: pwsh
+        run: |
+          $installer = Get-ChildItem dist/QuotelySetup-*.exe | Select-Object -First 1
+          $proc = Start-Process -FilePath $installer.FullName -ArgumentList '/S' -Wait -PassThru
+          if ($proc.ExitCode -ne 0) { throw "Installer exited with code $($proc.ExitCode)" }
+          $exe = Join-Path $env:LOCALAPPDATA 'Programs\Quotely\Quotely.exe'
+          if (-not (Test-Path $exe)) { throw "Installed app not found at $exe" }
+          $data = Join-Path $env:RUNNER_TEMP 'quotely-smoke'
+          $env:QUOTELY_E2E = '1'
+          $env:QUOTELY_E2E_USER_DATA = $data
+          $app = Start-Process -FilePath $exe -PassThru
+          $ok = $false
+          for ($i = 0; $i -lt 60; $i++) {
+            Start-Sleep -Seconds 1
+            if ($app.HasExited) { break }
+            if (Test-Path (Join-Path $data 'quotely.db')) { $ok = $true; Start-Sleep -Seconds 8; break }
+          }
+          $log = Join-Path $data 'startup-error.log'
+          if (Test-Path $log) { Get-Content $log; throw 'startup-error.log was written' }
+          if ($app.HasExited) { throw "App exited early with code $($app.ExitCode)" }
+          if (-not $ok) { throw 'App did not create its database within 60s' }
+          Write-Host 'Smoke test passed: installed, launched, database created, still running.'
+          Stop-Process -Id $app.Id -Force
 
       - name: Upload installer artifact
         uses: actions/upload-artifact@v4

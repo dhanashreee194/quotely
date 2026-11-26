@@ -1,0 +1,102 @@
+/* Letterhead from SILEX KITCHEN.docx — table layout, no absolute positioning. */
+/* Brand color is shared with the sibling <hr> rule, so it lives on both selectors. */
+.silex-letterhead,
+.silex-letterhead-rule {
+  --silex-magenta: #8c2f7c;
+}
+
+.silex-letterhead {
+  --silex-divider: #c9a0c4;
+  --silex-ink: #111111;
+  width: 100%;
+  border-collapse: collapse;
+  table-layout: fixed;
+  box-sizing: border-box;
+  page-break-inside: avoid;
+  font-family: 'Arial Narrow', Arial, 'Helvetica Neue', sans-serif;
+}
+
+.silex-letterhead-left {
+  width: 47%;
+  vertical-align: top;
+  padding: 0 12px 0 0;
+}
+
+.silex-letterhead-divider-cell {
+  width: 10px;
+  vertical-align: stretch;
+  padding: 2px 0;
+}
+
+.silex-letterhead-divider {
+  width: 1.5px;
+  height: 100%;
+  min-height: 72px;
+  margin: 0 auto;
+  background: var(--silex-divider);
+}
+
+.silex-letterhead-right {
+  width: 52%;
+  vertical-align: middle;
+  padding: 0 0 0 12px;
+}
+
+.silex-letterhead-logo {
+  display: block;
+  width: auto;
+  max-width: 100%;
+  height: 58px;
+  object-fit: contain;
+  object-position: left center;
+}
+
+.silex-letterhead-logo-fallback {
+  font-size: 16pt;
+  font-weight: 800;
+  color: var(--silex-magenta);
+  letter-spacing: 0.04em;
+}
+
+.silex-letterhead-tagline {
+  margin: 8px 0 0;
+  font-size: 7.5pt;
+  font-weight: 700;
+  letter-spacing: 0.01em;
+  color: #333333;
+  line-height: 1.25;
+  white-space: nowrap;
+}
+
+.silex-letterhead-name {
+  margin: 0 0 4px;
+  font-size: 16pt;
+  font-weight: 800;
+  color: var(--silex-magenta);
+  letter-spacing: 0.02em;
+  line-height: 1.1;
+}
+
+.silex-letterhead-address {
+  margin: 0;
+  font-size: 8pt;
+  font-weight: 700;
+  color: var(--silex-ink);
+  line-height: 1.35;
+}
+
+.silex-letterhead-email {
+  display: inline-block;
+  margin-top: 3px;
+  font-size: 9pt;
+  font-weight: 600;
+  color: #0563c1;
+  text-decoration: underline;
+}
+
+/* Horizontal rule that ends the letterhead before quotation content. */
+.silex-letterhead-rule {
+  border: 0;
+  border-top: 2.5px solid var(--silex-magenta);
+  margin: 10px 0 12px;
+}

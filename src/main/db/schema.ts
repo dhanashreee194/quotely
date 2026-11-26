@@ -186,6 +186,7 @@ export const quotations = sqliteTable(
     notesCustomer: text('notes_customer'),
     parentQuotationId: integer('parent_quotation_id'),
     revisionNumber: integer('revision_number').notNull().default(0),
+    deletedAt: text('deleted_at'),
     createdBy: text('created_by'),
     createdAt: text('created_at').notNull(),
     updatedAt: text('updated_at').notNull()
@@ -197,7 +198,8 @@ export const quotations = sqliteTable(
     index('quotation_status_idx').on(table.status),
     index('quotation_grand_total_idx').on(table.grandTotal),
     index('quotation_created_at_idx').on(table.createdAt),
-    index('quotation_updated_at_idx').on(table.updatedAt)
+    index('quotation_updated_at_idx').on(table.updatedAt),
+    index('quotation_deleted_at_idx').on(table.deletedAt)
   ]
 )
 

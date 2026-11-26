@@ -194,19 +194,33 @@ export const DRAWER_SET_RATES: Record<string, [number, number]> = {
 
 /** Handle option → rate + unit (PRICE LIST sheet). */
 export const HANDLE_RATES: Record<string, { rate: number; unit: string }> = {
-  'J/G Handle': { rate: 60, unit: 'Inch' },
+  'J Handle': { rate: 60, unit: 'Inch' },
+  'G Handle': { rate: 60, unit: 'Inch' },
   Knob: { rate: 450, unit: 'Nos' },
   'Regular Handle': { rate: 180, unit: 'Nos' },
-  'Top Edge Square': { rate: 1850, unit: 'Nos' },
-  'Top Edge Curve': { rate: 1850, unit: 'Nos' },
   Gola: { rate: 4500, unit: 'Inch' }
 }
 
 /** Handle option → bundled image filename (only options with provided images). */
 export const HANDLE_IMAGES: Record<string, string> = {
-  'J/G Handle': 'jg-handle.jpeg',
-  'Top Edge Square': 'top-edge-square.jpg',
-  'Top Edge Curve': 'top-edge-curve.jpg'
+  'J Handle': 'jg-handle.jpeg',
+  'G Handle': 'jg-handle.jpeg'
+}
+
+/** Pantry subtype → bundled image filename. */
+export const PANTRY_IMAGES: Record<string, string> = {
+  'Glass Pantry': 'pantry-system.jpeg',
+  'Metal Pantry': 'pantry-system.jpeg',
+  'S.S Pantry': 'pantry-system.jpeg',
+  'Drawer Pantry': 'drawer-pantry.jpeg',
+  'Space Pantry': 'space-pantry.jpeg'
+}
+
+/** Top Edge Square subtypes → rate, unit, and image. */
+export const TOP_EDGE_OPTIONS: Record<string, { rate: number; unit: string; image: string }> = {
+  Square: { rate: 1850, unit: 'Nos', image: 'top-edge-square.jpg' },
+  Curve: { rate: 1850, unit: 'Nos', image: 'top-edge-curve.jpg' },
+  Gola: { rate: 4500, unit: 'Inch', image: 'top-edge-curve.jpg' }
 }
 
 /** Subtype dropdown groups — only products mapped below get a dropdown (INFO sheet). */
@@ -217,7 +231,8 @@ export const PRODUCT_SUBTYPES: Record<string, string[]> = {
   pantry: ['Glass Pantry', 'Metal Pantry', 'S.S Pantry', 'Drawer Pantry', 'Space Pantry'],
   rolling: ['Glass', 'PVC', 'Acrylic', 'Wooden'],
   corner: ['Magic Corner', 'Swing Tray', 'Space Corner'],
-  handle: ['J/G Handle', 'Knob', 'Regular Handle', 'Top Edge Square', 'Top Edge Curve', 'Gola']
+  handle: ['J Handle', 'G Handle', 'Knob', 'Regular Handle', 'Gola'],
+  topedge: ['Square', 'Curve', 'Gola']
 }
 
 export type KitchenCatalogItem = {
@@ -244,6 +259,21 @@ const SHUTTER_ROWS: KitchenCatalogItem[] = [
   { itemCode: 'SHT-LF', name: 'Loft Unit Shutter Area', group: 'shutter', unit: 'Sq.Ft.', rate: 950, defaultQty: 0, image: 'shutter.jpeg' }
 ]
 
+/** Corner Unit is one line item. The three fittings are its subtype dropdown. */
+export const COMMON_UNIT_ITEM_CODE = 'TD-COMMON'
+export const CORNER_UNIT_NAME = 'Corner Unit'
+export const COMMON_UNIT_OPTIONS: Record<string, { rate: number; unit: string; image: string }> = {
+  'Magic Corner': { rate: 29500, unit: 'Nos', image: 'magic-corner.jpeg' },
+  'Swing Tray': { rate: 29500, unit: 'Nos', image: 'swing-tray.jpeg' },
+  'Space Corner': { rate: 29500, unit: 'Nos', image: 'space-pantry.jpeg' }
+}
+
+const COMMON_UNIT_CODES = new Set(['TD-COMMON', 'TD-MAGIC', 'TD-SWING', 'TD-SPACE'])
+
+/** Installation is shutter square feet × this rate. The amount stays editable. */
+export const INSTALLATION_RATE_PER_SQFT = 95
+export const INSTALLATION_CHARGE_NAME = 'Installation charges'
+
 /** Cabinet rate 1650 / open cabinet 2850 per the PRICE LIST sheet. */
 const CABINET_ROWS: KitchenCatalogItem[] = [
   { itemCode: 'CAB-OH', name: 'Overhead Unit Cabinet Area', group: 'cabinet', unit: 'Sq.Ft.', rate: 1650, defaultQty: 33.5, image: 'cabinet.jpeg' },
@@ -264,7 +294,7 @@ const CABINET_ROWS: KitchenCatalogItem[] = [
 export const KITCHEN_CATALOG: KitchenCatalogItem[] = [
   ...SHUTTER_ROWS,
   ...CABINET_ROWS,
-  { itemCode: 'TD-ORGA', name: 'OrgaTray Cutlery Tray', group: 'drawer', unit: 'Nos', rate: 2800, defaultQty: 1, image: 'cutlery-tray.png', subtypeGroup: 'cutlery' },
+  { itemCode: 'TD-ORGA', name: 'OrgaTray Cutlery Tray', group: 'drawer', unit: 'Nos', rate: 2800, defaultQty: 1, image: 'cutlery-tray.jpeg', subtypeGroup: 'cutlery' },
   { itemCode: 'TD-INLET', name: 'OrgaTech Inlet (Thali Inlet) (C/S Inlet)', group: 'drawer', unit: 'Nos', rate: 3850, defaultQty: 1, image: 'thali-inlet.jpeg' },
   { itemCode: 'TD-DRAWER', name: 'Tendem Drawer', group: 'drawer', unit: 'Nos', rate: 14500, defaultQty: 1, image: 'tendem-drawer.jpeg', subtypeGroup: 'drawer' },
   { itemCode: 'TD-POT', name: 'Pot and Pan Tendem Drawer', group: 'drawer', unit: 'Nos', rate: 16500, defaultQty: 5, image: 'pot-pan-drawer.jpeg', subtypeGroup: 'drawer' },
@@ -273,15 +303,14 @@ export const KITCHEN_CATALOG: KitchenCatalogItem[] = [
   { itemCode: 'TD-PIPE', name: 'SS Pipe Frame', group: 'drawer', unit: 'R.Ft.', rate: 1350, defaultQty: 7.5, image: 'ss-pipe-frame.jpeg' },
   { itemCode: 'TD-CARCASE', name: 'Carcase', group: 'drawer', unit: 'R.Ft.', rate: 4250, defaultQty: 0, image: 'carcase.jpeg' },
   { itemCode: 'TD-MAT', name: 'Antiskid Waterproof Matt', group: 'drawer', unit: 'Sq.Ft.', rate: 55, defaultQty: 35, image: 'antiskid-matt.jpeg' },
-  { itemCode: 'TD-JG', name: 'J/G Handle', group: 'drawer', unit: 'Inch', rate: 60, defaultQty: 290, image: 'jg-handle.jpeg', subtypeGroup: 'handle' },
-  { itemCode: 'TD-TOPAGE', name: 'Top Edge Square', group: 'drawer', unit: 'Nos', rate: 1850, defaultQty: 0, image: 'top-edge-square.jpg', subtypeGroup: 'handle' },
+  { itemCode: 'TD-JG', name: 'Handle', group: 'drawer', unit: 'Inch', rate: 60, defaultQty: 290, image: 'jg-handle.jpeg', subtypeGroup: 'handle' },
+  { itemCode: 'TD-TOPAGE', name: 'Top Edge Square', group: 'drawer', unit: 'Nos', rate: 1850, defaultQty: 0, image: 'top-edge-square.jpg', subtypeGroup: 'topedge' },
   { itemCode: 'TD-HINGE', name: 'Soft Close Hinges', group: 'drawer', unit: 'Pair', rate: 650, defaultQty: 20, image: 'hinges.jpeg' },
   { itemCode: 'TD-PANTRY', name: 'Pantry System (600MM)', group: 'drawer', unit: 'Nos', rate: 29500, defaultQty: 0, image: 'pantry-system.jpeg', subtypeGroup: 'pantry' },
   { itemCode: 'TD-BIFOLD', name: 'Bi-Fold System', group: 'drawer', unit: 'Nos', rate: 14500, defaultQty: 0, image: 'bifold-system.jpeg' },
   { itemCode: 'TD-ROLL', name: 'Rolling Shutter', group: 'drawer', unit: 'Nos', rate: 29500, defaultQty: 0, image: 'rolling-shutter.jpeg', subtypeGroup: 'rolling' },
-  { itemCode: 'TD-SWING', name: 'Swing Tray', group: 'drawer', unit: 'Nos', rate: 29500, defaultQty: 0, image: 'swing-tray.jpeg', subtypeGroup: 'corner' },
   { itemCode: 'TD-DUSTBIN', name: 'Wet And Dry Dustbin', group: 'drawer', unit: 'Nos', rate: 4500, defaultQty: 0, image: 'dustbin.jpeg' },
-  { itemCode: 'TD-MAGIC', name: 'Magic Corner', group: 'drawer', unit: 'Nos', rate: 29500, defaultQty: 0, image: 'magic-corner.jpeg', subtypeGroup: 'corner' }
+  { itemCode: 'TD-COMMON', name: 'Corner Unit', group: 'drawer', unit: 'Nos', rate: 29500, defaultQty: 0, image: 'magic-corner.jpeg', subtypeGroup: 'corner' }
 ]
 
 /**
@@ -309,14 +338,13 @@ export const BASKET_CATALOG: KitchenCatalogItem[] = [
   { itemCode: 'TD-CARCASE', name: 'Carcase', group: 'basket', unit: 'R.Ft.', rate: 4250, defaultQty: 0, image: 'carcase.jpeg' },
   { itemCode: 'SSB-TELE', name: 'Telescopic Channel', group: 'basket', unit: 'Pair', rate: 850, defaultQty: 0, image: 'telescopic-channel.png' },
   { itemCode: 'SSB-QUADRO', name: 'Quadro Soft Close Channel', group: 'basket', unit: 'Pair', rate: 3850, defaultQty: 8, image: 'quadro-channel.jpeg' },
-  { itemCode: 'TD-JG', name: 'J/G Handle', group: 'basket', unit: 'Inch', rate: 60, defaultQty: 290, image: 'jg-handle.jpeg', subtypeGroup: 'handle' },
-  { itemCode: 'TD-TOPAGE', name: 'Top Edge Square', group: 'basket', unit: 'Nos', rate: 1850, defaultQty: 0, image: 'top-edge-square.jpg', subtypeGroup: 'handle' },
+  { itemCode: 'TD-JG', name: 'Handle', group: 'basket', unit: 'Inch', rate: 60, defaultQty: 290, image: 'jg-handle.jpeg', subtypeGroup: 'handle' },
+  { itemCode: 'TD-TOPAGE', name: 'Top Edge Square', group: 'basket', unit: 'Nos', rate: 1850, defaultQty: 0, image: 'top-edge-square.jpg', subtypeGroup: 'topedge' },
   { itemCode: 'TD-HINGE', name: 'Soft Close Hinges', group: 'basket', unit: 'Pair', rate: 650, defaultQty: 11, image: 'hinges.jpeg' },
   { itemCode: 'TD-PANTRY', name: 'Pantry Unit System (450MM)', group: 'basket', unit: 'Nos', rate: 29500, defaultQty: 0, image: 'pantry-system.jpeg', subtypeGroup: 'pantry' },
   { itemCode: 'TD-ROLL', name: 'Rolling Shutter', group: 'basket', unit: 'Nos', rate: 29500, defaultQty: 0, image: 'rolling-shutter.jpeg', subtypeGroup: 'rolling' },
-  { itemCode: 'TD-SWING', name: 'Swing Tray', group: 'basket', unit: 'Nos', rate: 29500, defaultQty: 0, image: 'swing-tray.jpeg', subtypeGroup: 'corner' },
   { itemCode: 'TD-DUSTBIN', name: 'Wet And Dry Dustbin', group: 'basket', unit: 'Nos', rate: 4500, defaultQty: 0, image: 'dustbin.jpeg' },
-  { itemCode: 'TD-MAGIC', name: 'Magic Corner', group: 'basket', unit: 'Nos', rate: 29500, defaultQty: 0, image: 'magic-corner.jpeg', subtypeGroup: 'corner' }
+  { itemCode: 'TD-COMMON', name: 'Corner Unit', group: 'basket', unit: 'Nos', rate: 29500, defaultQty: 0, image: 'magic-corner.jpeg', subtypeGroup: 'corner' }
 ]
 
 /** Catalog for a quote type. */
@@ -328,6 +356,16 @@ export function catalogForQuoteType(quoteType: string): KitchenCatalogItem[] {
 export const QUOTE_TYPE_DISCOUNT_PERCENT: Record<string, number> = {
   Tendam: 25,
   Basket: 10
+}
+
+/** Subtype pre-selected when a catalog row is added to a new quotation. */
+export function defaultCatalogSubtype(item: KitchenCatalogItem): string {
+  const options = item.subtypeGroup ? PRODUCT_SUBTYPES[item.subtypeGroup] : undefined
+  if (!options || options.length === 0) return ''
+  if (item.itemCode === 'TD-JG') return 'J Handle'
+  if (item.itemCode === 'TD-TOPAGE') return 'Square'
+  if (item.itemCode === 'TD-COMMON') return 'Magic Corner'
+  return options.includes(item.name) ? item.name : options[0]
 }
 
 /** itemCode → subtype dropdown options (for the quotation editor). */
@@ -361,7 +399,174 @@ export function kitchenGroupLabel(
   if (group === 'basket') {
     return 'SILEX MADE S.S. BASKET (202 GRADE)'
   }
-  return 'SLEEK TENDEM DRAWERS'
+  return 'TENDEM DRAWERS'
+}
+
+export function isInstallationChargeName(name: string): boolean {
+  return /^installation\b/i.test(name.trim())
+}
+
+/** Shutter areas measured in square feet (1st category). Cabinets and accessories are excluded. */
+export function isPlySquareFootLine(
+  itemCode: string | undefined,
+  unit: string,
+  category: string
+): boolean {
+  if (!/sq\.?\s*ft/i.test(unit)) return false
+  if (itemCode) return /^SHT-/.test(itemCode)
+  if (/ROLLING/i.test(category)) return false
+  return /SHUTTER/i.test(category)
+}
+
+export function plySquareFeet(
+  lines: Array<{ itemCode?: string; qty: number; unit: string; category: string }>
+): number {
+  const total = lines.reduce((sum, line) => {
+    if (!isPlySquareFootLine(line.itemCode, line.unit, line.category)) return sum
+    const qty = Number.isFinite(line.qty) ? Math.max(0, line.qty) : 0
+    return sum + qty
+  }, 0)
+  return Math.round(total * 1000) / 1000
+}
+
+export function isQuotationNoteField(fieldKey: string, label: string): boolean {
+  return /note/i.test(fieldKey) || /^notes?$/i.test(label.trim())
+}
+
+export function isCommonUnitLine(code: string | undefined, description: string, category: string): boolean {
+  if (code && COMMON_UNIT_CODES.has(code)) return true
+  const categoryUpper = category.trim().toUpperCase()
+  if (categoryUpper === 'COMMON UNIT' || categoryUpper === 'CORNER UNIT') return true
+  const descriptionLower = description.trim().toLowerCase()
+  return descriptionLower === 'common unit' || descriptionLower === 'corner unit'
+}
+
+export function commonUnitSubtype(description: string, subtype: string): string {
+  const options = Object.keys(COMMON_UNIT_OPTIONS)
+  if (options.includes(subtype)) return subtype
+  if (options.includes(description)) return description
+  return 'Magic Corner'
+}
+
+export function normalizeCategoryHeading(category: string): string {
+  return category.replace(/^SLEEK\s+/i, '')
+}
+
+type FoldableItem = {
+  productId?: number | null
+  qty: number
+  columnValues?: Record<string, unknown> | null
+}
+
+function foldText(values: Record<string, unknown> | null | undefined, key: string): string {
+  const raw = values?.[key]
+  return typeof raw === 'string' ? raw : ''
+}
+
+/**
+ * Collapse Magic Corner / Swing Tray / Space Corner into one Corner Unit row
+ * with a subtype, and drop the "SLEEK" prefix from drawer headings.
+ * Returns the same array when nothing needs to change.
+ */
+export function foldCommonUnitItems<T extends FoldableItem>(
+  items: T[],
+  codeFor: (item: T) => string | undefined,
+  commonProductId?: number | null
+): T[] {
+  const indexes: number[] = []
+  items.forEach((item, index) => {
+    if (isCommonUnitLine(codeFor(item), foldText(item.columnValues, 'description'), foldText(item.columnValues, 'category'))) {
+      indexes.push(index)
+    }
+  })
+  const needsHeadingFix = items.some((item) => /^SLEEK\s+/i.test(foldText(item.columnValues, 'category')))
+  if (indexes.length === 0 && !needsHeadingFix) return items
+
+  let heading = 'TENDEM DRAWERS'
+  for (let index = 0; index < items.length; index += 1) {
+    if (indexes.includes(index)) continue
+    const category = normalizeCategoryHeading(foldText(items[index].columnValues, 'category'))
+    if (/BASKET|TENDEM/i.test(category)) {
+      heading = category
+      break
+    }
+  }
+
+  let bestIndex = indexes[0] ?? -1
+  let bestQty = -1
+  for (const index of indexes) {
+    const qty = Number(items[index]?.qty) || 0
+    if (qty > bestQty) {
+      bestQty = qty
+      bestIndex = index
+    }
+  }
+
+  const alreadyCanonical =
+    indexes.length === 1 &&
+    !needsHeadingFix &&
+    bestIndex >= 0 &&
+    isCanonicalCommonUnit(items[bestIndex], commonProductId)
+
+  if (alreadyCanonical) return items
+
+  const source = bestIndex >= 0 ? items[bestIndex] : null
+  const subtype = source
+    ? commonUnitSubtype(foldText(source.columnValues, 'description'), foldText(source.columnValues, 'subtype'))
+    : 'Magic Corner'
+  const option = COMMON_UNIT_OPTIONS[subtype]
+  const next: T[] = []
+  let placed = false
+
+  items.forEach((item, index) => {
+    if (indexes.includes(index)) {
+      if (!placed && source) {
+        next.push({
+          ...source,
+          productId: commonProductId ?? source.productId,
+          columnValues: {
+            ...(source.columnValues ?? {}),
+            description: CORNER_UNIT_NAME,
+            subtype,
+            category: heading,
+            unit: option?.unit ?? (foldText(source.columnValues, 'unit') || 'Nos'),
+            image: option ? `products/kitchen/${option.image}` : foldText(source.columnValues, 'image')
+          }
+        })
+        placed = true
+      }
+      return
+    }
+    const category = foldText(item.columnValues, 'category')
+    if (/^SLEEK\s+/i.test(category)) {
+      next.push({
+        ...item,
+        columnValues: { ...(item.columnValues ?? {}), category: normalizeCategoryHeading(category) }
+      })
+      return
+    }
+    next.push(item)
+  })
+
+  return next
+}
+
+function isCanonicalCommonUnit(item: FoldableItem, commonProductId?: number | null): boolean {
+  const description = foldText(item.columnValues, 'description')
+  const subtype = foldText(item.columnValues, 'subtype')
+  const category = foldText(item.columnValues, 'category')
+  const option = COMMON_UNIT_OPTIONS[subtype]
+  if (description !== CORNER_UNIT_NAME || !option) return false
+  if (
+    category.trim().toUpperCase() === 'COMMON UNIT' ||
+    category.trim().toUpperCase() === 'CORNER UNIT' ||
+    /^SLEEK\s+/i.test(category)
+  ) {
+    return false
+  }
+  if (commonProductId && item.productId !== commonProductId) return false
+  const image = foldText(item.columnValues, 'image')
+  return image.endsWith(option.image)
 }
 
 /**
@@ -491,5 +696,50 @@ export const DEFAULT_CUSTOM_FIELDS: Array<{
       { label: 'PVC Plain', value: 'PVC Plain' },
       { label: 'PVC Designer Shutter', value: 'PVC Designer Shutter' }
     ]
+  },
+  {
+    sectionType: 'custom',
+    fieldKey: 'tableHeaders',
+    label: 'Table Header Labels',
+    type: 'text',
+    required: false,
+    printVisible: false
   }
 ]
+
+/** Hidden per-quotation custom field that stores edited item-table header labels (JSON). */
+export const TABLE_HEADERS_FIELD_KEY = 'tableHeaders'
+
+/** Default item-table header labels, keyed by column (`srNo` + item column keys). */
+export const DEFAULT_TABLE_HEADER_LABELS: Record<string, string> = {
+  srNo: 'Sr.No.',
+  image: 'Image',
+  description: 'Description',
+  qty: 'Qty',
+  unit: 'Unit',
+  rate: 'Rate',
+  amount: 'Total'
+}
+
+/**
+ * Parse the stored JSON of edited header labels. Blank labels are dropped unless
+ * `keepBlank` is set (the editor keeps them while the user is mid-edit).
+ */
+export function parseTableHeaderOverrides(
+  raw: unknown,
+  keepBlank = false
+): Record<string, string> {
+  if (typeof raw !== 'string' || !raw.trim()) return {}
+  try {
+    const parsed: unknown = JSON.parse(raw)
+    if (!parsed || typeof parsed !== 'object') return {}
+    const result: Record<string, string> = {}
+    for (const [key, value] of Object.entries(parsed as Record<string, unknown>)) {
+      if (typeof value !== 'string') continue
+      if (keepBlank || value.trim()) result[key] = value
+    }
+    return result
+  } catch {
+    return {}
+  }
+}
